@@ -1,2 +1,2 @@
 # game-rpg
-game rpg for browser in canvas
+rpg game for browser in canvas
