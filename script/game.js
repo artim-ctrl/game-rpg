@@ -148,8 +148,8 @@
 	function main() {// основная event loop
 		// если проиграли
 		if (player.HP <= 0) {
-		death();
-		return;
+			death();
+			return;
 		}
 
 		dt = (Date.now() - lastTime) || 1;// чтоб ыне было бага если время кадра слишком низкое (равно 0)
@@ -188,117 +188,117 @@
 		player.stay = true;// говорим обьекту стоять, если дальше сработают кнопки, то стоять не будем
 
 		if (input.isPressed('UP') || input.isPressed('w')) {
-		player.translation[1] = -dt * player.speed / 1000;//куда перемещается наш перс
-		player.currentAnim = "up";// анимация
-		player.stay = false;
+			player.translation[1] = -dt * player.speed / 1000;//куда перемещается наш перс
+			player.currentAnim = "up";// анимация
+			player.stay = false;
 
-		if (player.globalTranslation[1] != 0 && (player.pos[1] + player.translation[1]) < indentMap) {
-			player.globalTranslation[1] -= player.translation[1];
-			player.translation[1] = 0;
-		}
+			if (player.globalTranslation[1] != 0 && (player.pos[1] + player.translation[1]) < indentMap) {
+				player.globalTranslation[1] -= player.translation[1];
+				player.translation[1] = 0;
+			}
 
-		if (player.globalTranslation[1] > 0) {
-			player.globalTranslation[1] = 0;
-		}
+			if (player.globalTranslation[1] > 0) {
+				player.globalTranslation[1] = 0;
+			}
 		}
 		if (input.isPressed('DOWN') || input.isPressed('s')) {
-		player.translation[1] = dt * player.speed / 1000;
-		player.currentAnim = "down";
-		player.stay = false;
+			player.translation[1] = dt * player.speed / 1000;
+			player.currentAnim = "down";
+			player.stay = false;
 
-		if (player.globalTranslation[1] != -(endPos[1] - cnv.height) && (player.pos[1] + player.translation[1] + player.size[1]) > cnv.height - indentMap) {
-			player.globalTranslation[1] -= player.translation[1];
-			player.translation[1] = 0;
-		}
+			if (player.globalTranslation[1] != -(endPos[1] - cnv.height) && (player.pos[1] + player.translation[1] + player.size[1]) > cnv.height - indentMap) {
+				player.globalTranslation[1] -= player.translation[1];
+				player.translation[1] = 0;
+			}
 
-		if (-player.globalTranslation[1] > endPos[1] - cnv.height) {
-			player.globalTranslation[1] = -(endPos[1] - cnv.height);
-		}
+			if (-player.globalTranslation[1] > endPos[1] - cnv.height) {
+				player.globalTranslation[1] = -(endPos[1] - cnv.height);
+			}
 		}
 		if (input.isPressed('LEFT') || input.isPressed('a')) {
-		player.translation[0] = -dt * player.speed / 1000;
-		player.currentAnim = "left";
-		player.stay = false;
+			player.translation[0] = -dt * player.speed / 1000;
+			player.currentAnim = "left";
+			player.stay = false;
 
-		if (player.globalTranslation[0] != 0 && (player.pos[0] + player.translation[0]) < indentMap) {
-			player.globalTranslation[0] -= player.translation[0];
-			player.translation[0] = 0;
-		}
+			if (player.globalTranslation[0] != 0 && (player.pos[0] + player.translation[0]) < indentMap) {
+				player.globalTranslation[0] -= player.translation[0];
+				player.translation[0] = 0;
+			}
 
-		if (player.globalTranslation[0] > 0) {
-			player.globalTranslation[0] = 0;
-		}
+			if (player.globalTranslation[0] > 0) {
+				player.globalTranslation[0] = 0;
+			}
 		}
 		if (input.isPressed('RIGHT') || input.isPressed('d')) {
-		player.translation[0] = dt * player.speed / 1000;
-		player.currentAnim = "right";
-		player.stay = false;
+			player.translation[0] = dt * player.speed / 1000;
+			player.currentAnim = "right";
+			player.stay = false;
 
-		if (player.globalTranslation[0] != -(endPos[0] - cnv.width) && (player.pos[0] + player.translation[0] + player.size[0]) > cnv.width - indentMap) {
-			player.globalTranslation[0] -= player.translation[0];
-			player.translation[0] = 0;
-		}
+			if (player.globalTranslation[0] != -(endPos[0] - cnv.width) && (player.pos[0] + player.translation[0] + player.size[0]) > cnv.width - indentMap) {
+				player.globalTranslation[0] -= player.translation[0];
+				player.translation[0] = 0;
+			}
 
-		if (-player.globalTranslation[0] > endPos[0] - cnv.width) {
-			player.globalTranslation[0] = -(endPos[0] - cnv.width);
-		}
+			if (-player.globalTranslation[0] > endPos[0] - cnv.width) {
+				player.globalTranslation[0] = -(endPos[0] - cnv.width);
+			}
 		}
 
 		// проверяем на нажатие
 		for (let i = 0; i < player.countSlots; i++) {
-		if (input.isPressed(`${i + 1}`)) {// если нажат кнопка 1 - количество слотов перса
-			if (player.slots[i]) {// если слот не пуст
-			if (player.slots[i].item instanceof Food) {// если в этом слоте - еда, то "едим" ее
-				if (player.slots[i].item.remainingTimeReduction == 0 && player.HP < player.maxHP) {
-				player.slots[i].item.use(player);// прибавляем HP
-				player.slots[i].count--;// уменьшаем количество
+			if (input.isPressed(`${i + 1}`)) {// если нажат кнопка 1 - количество слотов перса
+				if (player.slots[i]) {// если слот не пуст
+					if (player.slots[i].item instanceof Food) {// если в этом слоте - еда, то "едим" ее
+						if (player.slots[i].item.remainingTimeReduction == 0 && player.HP < player.maxHP) {
+						player.slots[i].item.use(player);// прибавляем HP
+						player.slots[i].count--;// уменьшаем количество
 
-				if (player.slots[i].count == 0) {// если количество == 0 - удаляем
-					player.slots[i] = undefined;
-				}
-				}
-			} else if (player.slots[i].item instanceof Weapon) {// если в слоте оружие
-				if (!player.currentWeapon) {
-				player.currentWeapon = player.slots[i].item;
-				player.slots.splice(i, 1);
-				} else {
-				let tempSlot = player.slots[i].item;
-				player.slots[i].item = player.currentWeapon;
-				player.currentWeapon = tempSlot;
+							if (player.slots[i].count == 0) {// если количество == 0 - удаляем
+								player.slots[i] = undefined;
+							}
+						}
+					} else if (player.slots[i].item instanceof Weapon) {// если в слоте оружие
+						if (!player.currentWeapon) {
+							player.currentWeapon = player.slots[i].item;
+							player.slots.splice(i, 1);
+						} else {
+							let tempSlot = player.slots[i].item;
+							player.slots[i].item = player.currentWeapon;
+							player.currentWeapon = tempSlot;
+						}
+					}
 				}
 			}
-			}
-		}
 		}
 
 		if (input.isPressed('i') && timeOpenInventory > 300) {// если нажали - открываем инвентарь
-		hood.showOrNotInventory();
-		timeOpenInventory = 0;
+			hood.showOrNotInventory();
+			timeOpenInventory = 0;
 		}
 
 		if (input.mouse.clicked) {
-		enemy.forEach((e) => {
-			// середины игрока и врага (данного)
-			let midPlayer = [player.pos[0] + player.size[0] / 2, player.pos[1] + player.size[1] / 2];
-			let midEnemy = [e.pos[0] + player.globalTranslation[0] + e.size[0] / 2,
-							e.pos[1] + player.globalTranslation[1] + e.size[1] / 2];
+			enemy.forEach((e) => {
+				// середины игрока и врага (данного)
+				let midPlayer = [player.pos[0] + player.size[0] / 2, player.pos[1] + player.size[1] / 2];
+				let midEnemy = [e.pos[0] + player.globalTranslation[0] + e.size[0] / 2,
+								e.pos[1] + player.globalTranslation[1] + e.size[1] / 2];
 
-			// координаты врага относительно игрока
-			let vectorToPlayer = [midPlayer[0] - midEnemy[0], midPlayer[1] - midEnemy[1]];
+				// координаты врага относительно игрока
+				let vectorToPlayer = [midPlayer[0] - midEnemy[0], midPlayer[1] - midEnemy[1]];
 
-			let distance = Math.sqrt(Math.pow(vectorToPlayer[0], 2) + Math.pow(vectorToPlayer[1], 2));
+				let distance = Math.sqrt(Math.pow(vectorToPlayer[0], 2) + Math.pow(vectorToPlayer[1], 2));
 
-			if(distance < 120 && player.timeWeaponReduction == 0) {
-			// !!! если в руках нет оружия, то перс бьет с силой в 5 и восстановлением 2 секунды
-			if (player.currentWeapon) {
-				e.hit(player.currentWeapon.damage);
-				player.timeWeaponReduction = player.currentWeapon.timeReduction;
-			} else {
-				e.hit(5);
-				player.timeWeaponReduction = 2000;
-			}
-			}
-		});
+				if(distance < 120 && player.timeWeaponReduction == 0) {
+					// !!! если в руках нет оружия, то перс бьет с силой в 5 и восстановлением 2 секунды
+					if (player.currentWeapon) {
+						e.hit(player.currentWeapon.damage);
+						player.timeWeaponReduction = player.currentWeapon.timeReduction;
+					} else {
+						e.hit(5);
+						player.timeWeaponReduction = 2000;
+					}
+				}
+			});
 		}
 
 		checkCollisions();
@@ -311,36 +311,36 @@
 
 	function checkCollisionsWithEnds() {// прописать изменение GlobalTranslation
 		if (player.pos[0] + player.translation[0] <= beginPos[0]) {// левый конец карты
-		player.pos[0] = beginPos[0];
-		player.translation[0] = 0;
+			player.pos[0] = beginPos[0];
+			player.translation[0] = 0;
 		} else if (player.pos[0] + player.translation[0] + player.size[0] >= cnv.width) {
-		player.pos[0] = cnv.width - player.size[0];
-		player.translation[0] = 0;
+			player.pos[0] = cnv.width - player.size[0];
+			player.translation[0] = 0;
 		}
 		if (player.pos[1] + player.translation[1] <= beginPos[1]) {// верхний конец карты
-		player.pos[1] = beginPos[1];
-		player.translation[1] = 0;
+			player.pos[1] = beginPos[1];
+			player.translation[1] = 0;
 		} else if (player.pos[1] + player.translation[1] + player.size[1] >= cnv.height) {
-		player.pos[1] = cnv.height - player.size[1];
-		player.translation[1] = 0;
+			player.pos[1] = cnv.height - player.size[1];
+			player.translation[1] = 0;
 		}
 	}
 
 	function checkCollisionsWithBox() {
 		for (let i = 0; i < box.length; i++) {
-		if (boxCollides(player.pos, player.size, [box[i].pos[0] + player.globalTranslation[0], box[i].pos[1] + player.globalTranslation[1]], box[i].size)) {
-			if (lastCurrBox != null) {// если на прошлом кадре мы касались бокса
-			if (box[i] != lastCurrBox) {// уже другой box и мы его касаемся
-				lastCurrBox = box[i]
-				hood.setBox(true, box[i]);// говорим, что касаемся box-а и передаем ссылку на box, которого касаемся
+			if (boxCollides(player.pos, player.size, [box[i].pos[0] + player.globalTranslation[0], box[i].pos[1] + player.globalTranslation[1]], box[i].size)) {
+				if (lastCurrBox != null) {// если на прошлом кадре мы касались бокса
+					if (box[i] != lastCurrBox) {// уже другой box и мы его касаемся
+						lastCurrBox = box[i]
+						hood.setBox(true, box[i]);// говорим, что касаемся box-а и передаем ссылку на box, которого касаемся
+					}
+				} else {// если до этого момента, box-а мы не касались
+					lastCurrBox = box[i]
+					hood.setBox(true, box[i]);// говорим, что касаемся box-а и передаем ссылку на box, которого касаемся
+					hood.setShowHintInventory(true);// Показываем подсказку
+				}
+				return;
 			}
-			} else {// если до этого момента, box-а мы не касались
-			lastCurrBox = box[i]
-			hood.setBox(true, box[i]);// говорим, что касаемся box-а и передаем ссылку на box, которого касаемся
-			hood.setShowHintInventory(true);// Показываем подсказку
-			}
-			return;
-		}
 		}
 
 		// обнуляем текущий бокс
@@ -366,7 +366,7 @@
 		player.update(dt);// просчет персонажа (анимации и движения)
 
 		enemy.forEach((e) => {
-		e.update(dt, player, enemy, box);
+			e.update(dt, player, enemy, box);
 		});
 
 		updateReduction(dt);
@@ -374,25 +374,25 @@
 
 	function updateReduction(dt) {// обновляем все восстановления (item-ов) у перса
 		for (let i = 0; i < player.countSlots; i++) {// перебираем их
-		if (player.slots[i]) {// если слот не пуст
-			if (player.slots[i].item.remainingTimeReduction != undefined) {// если эта перемнная существует
-			if (player.slots[i].item.remainingTimeReduction != 0) {// если не равна нулю
-				player.slots[i].item.remainingTimeReduction -= dt;// отнимаем пройденное время
+			if (player.slots[i]) {// если слот не пуст
+				if (player.slots[i].item.remainingTimeReduction != undefined) {// если эта перемнная существует
+					if (player.slots[i].item.remainingTimeReduction != 0) {// если не равна нулю
+						player.slots[i].item.remainingTimeReduction -= dt;// отнимаем пройденное время
 
-				if (player.slots[i].item.remainingTimeReduction < 0) {// должна быть не меньше нуля
-				player.slots[i].item.remainingTimeReduction = 0;
+						if (player.slots[i].item.remainingTimeReduction < 0) {// должна быть не меньше нуля
+							player.slots[i].item.remainingTimeReduction = 0;
+						}
+					}
 				}
 			}
-			}
-		}
 		}
 
 		if (player.timeWeaponReduction != 0) {// восстановление задержки удара
-		player.timeWeaponReduction -= dt;
+			player.timeWeaponReduction -= dt;
 
-		if (player.timeWeaponReduction < 0) {
-			player.timeWeaponReduction = 0;
-		}
+			if (player.timeWeaponReduction < 0) {
+				player.timeWeaponReduction = 0;
+			}
 		}
 	}
 
@@ -402,7 +402,7 @@
 		renderBoxes(ctx, player);// отрисовка box-ов
 
 		enemy.forEach((e) => {
-		e.render(ctx, player);
+			e.render(ctx, player);
 		});
 
 		player.render(ctx);// отрисовка персонажа
@@ -412,7 +412,7 @@
 
 	function renderBoxes(ctx, player) {
 		box.forEach((e) => {
-		e.render(ctx, beginPos, player);
+			e.render(ctx, beginPos, player);
 		});
 	}
 })();
