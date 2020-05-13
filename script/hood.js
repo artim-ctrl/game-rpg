@@ -22,7 +22,7 @@
         renderBoxSlots(ctx, cnv, player);
       }
     } else {
-      setNullMouseCoordinates();
+      input.mouse.setNull();
       selectedSlot = null;
       selectedSlotInPlayerInventory = null;
     }
@@ -120,10 +120,10 @@
     ctx.strokeRect(posM[0], posM[1], sizeM[0], sizeM[1]);
     ctx.fillRect(posM[0], posM[1], sizeM[0], sizeM[1]);
 
-    if (isPressed('mouseclick') != null) {// если пользователь нажал куда-то - берем координаты и ищем а затем выделаем нужный слот
+    if (input.mouse.clickCoordinates != null) {// если пользователь нажал куда-то - берем координаты и ищем а затем выделаем нужный слот
       // считаем какой элемент выделили и обнуляем pressedKeys
-      let pos = [isPressed('mouseclick')[0] - posM[0] - sizeBetweenSlots,// это позиция относительно первого слота (слева сверху)
-                 isPressed('mouseclick')[1] - posM[1] - sizeBetweenSlots];
+      let pos = [input.mouse.clickCoordinates.x - posM[0] - sizeBetweenSlots,// это позиция относительно первого слота (слева сверху)
+          input.mouse.clickCoordinates.y - posM[1] - sizeBetweenSlots];
 
       if (pos[0] >= 0 && pos[0] < sizeM[0] &&// если кликнули внутри этой меню
           pos[1] >= 0 && pos[1] < sizeM[1]) {
@@ -136,7 +136,7 @@
             (pos[1] - (posByPos[1] * (sizeSlot + sizeBetweenSlots))) < sizeSlot) {
           // наш выделенный слот
           let tempSelectedSlot = (posByPos[1]) * countSlotsOnLine + posByPos[0];
-          setNullMouseCoordinates();
+          input.mouse.setNull();
 
           if (tempSelectedSlot < currentBox.countSlots) {// если кликнули на 7 слот к примеру (в случае если в данном хранилище 8 предметов)
             if (selectedSlotInPlayerInventory == null) {// если в инвентаре игрока ничего не выбрано, то можем выбирать в хранилище
@@ -233,10 +233,10 @@
     let size = [sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * player.countSlots, sizeBetweenSlots * 2 + sizeSlot];
     let pos = [(cnv.width - size[0]) / 2, indent];
 
-    if (isPressed('mouseclick') != null && showInventory) {// если пользователь нажал куда-то - берем координаты и ищем а затем выделаем нужный слот
+    if (input.mouse.clickCoordinates != null && showInventory) {// если пользователь нажал куда-то - берем координаты и ищем а затем выделаем нужный слот
       // считаем какой элемент выделили и обнуляем pressedKeys
-      let posS = [isPressed('mouseclick')[0] - pos[0] - sizeBetweenSlots,// это позиция относительно первого слота (слева сверху)
-                 isPressed('mouseclick')[1] - pos[1] - sizeBetweenSlots];
+      let posS = [input.mouse.clickCoordinates.x - pos[0] - sizeBetweenSlots,// это позиция относительно первого слота (слева сверху)
+              input.mouse.clickCoordinates.y - pos[1] - sizeBetweenSlots];
 
       if (posS[0] >= 0 && posS[0] < size[0] &&// если кликнули внутри этой меню
           posS[1] >= 0 && posS[1] < size[1]) {
@@ -248,7 +248,7 @@
             posS[1] < sizeSlot) {
           // наш выделенный слот
           let tempSelectedSlot = posByPos[0];
-          setNullMouseCoordinates();
+          input.mouse.setNull();
 
           if (tempSelectedSlot < player.countSlots) {
             if (selectedSlot == null) {// если в хранилище ничего не выбрано, то можем выбирать в инвентаре игрока
