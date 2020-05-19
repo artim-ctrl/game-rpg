@@ -86,6 +86,8 @@ function render() {
     map.render();// рисуем карту
 
     player.render();// рисуем перса
+
+    hood.render();// рисуем худ
 }
 
 function checkCollisions() {

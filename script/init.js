@@ -60,43 +60,53 @@ let player = null;// переменная игрока
 
         endPos = map.getMaxPos();
 
-        player = new Player({
+        player = new Player(getVar('player'));
+
+        main();
+    }
+})();
+
+(function() {
+    let vars = {
+        player: {
             pos: { x: 200, y: 200 },
             size: { x: 26 * scaleAll, y: 36 * scaleAll },
-            parent_id: null,
             speed: 0.3,
             stayFrame: 1,
+            maxHP: 100,
             sprite: {
                 anim: {
                     down: {
-                        pos: { x: 0, y: 0},
+                        pos: { x: 0, y: 0 },
                         speed: .01,
-                        size: { x: 26, y: 36},
+                        size: { x: 26, y: 36 },
                         frames: [0, 1, 2]
                     },
                     right: {
-                        pos: { x: 0, y: 72},
+                        pos: { x: 0, y: 72 },
                         speed: .01,
-                        size: { x: 26, y: 36},
+                        size: { x: 26, y: 36 },
                         frames: [0, 1, 2]
                     },
                     left: {
-                        pos: { x: 0, y: 36},
+                        pos: { x: 0, y: 36 },
                         speed: .01,
-                        size: { x: 26, y: 36},
+                        size: { x: 26, y: 36 },
                         frames: [0, 1, 2]
                     },
                     up: {
-                        pos: { x: 0, y: 108},
+                        pos: { x: 0, y: 108 },
                         speed: .01,
-                        size: { x: 26, y: 36},
+                        size: { x: 26, y: 36 },
                         frames: [0, 1, 2]
                     } 
                 },
                 url: 'source/player.png'
             }
-        });
+        }
+    };
 
-        main();
-    }
+    window.getVar = (key) => {
+        return JSON.parse(JSON.stringify(vars[key]));
+    };
 })();

@@ -3,8 +3,7 @@ class GameObject {
         // основные переменные
         this.pos = params.pos;// позиция в реальном мире
         this.size = params.size;// размеры в реальном мире
-        this.sprite = params.sprite;// анимация, ссылка на спрайт, позиция и размеры на спрайте
-        this.parent_id = params.parent_id;// идентификатор обьекта-родителя (null, если нет родителя)
+        this.sprite = params.sprite;// анимация, ссылка на спрайт, позиция и размеры на спрайтеs
         this.stayFrame = params.stayFrame;// анимация "стояния на месте"
         this.stay = true;// проигрывается анимация или нет
 
