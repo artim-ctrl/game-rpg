@@ -1,53 +1,38 @@
 (function () {
-    let playerInventory = null;
+    let playerInventory = null,
+        minPlayerInventory = null;
+
+    let sizeInventoryBlock = 38,
+        indentBetweenItem = 5;
+
+    let dragingSlot = null;
+
+    let firstSlot = {
+            inventory: null,
+            id: null
+        },
+        secondSlot = {
+            inventory: null,
+            id: null
+        };
+
+    let activeInvItem = null;
 
     function render() {
         renderHealth();
         renderPlayerInventory();
-    }// дописать тип image в renderMenu, у него отдельный indent, рисуется всегда по центру (родитель - рамочка или рамочка с background)
+    }
 
     function renderPlayerInventory() {
-        if (!playerInventory) return;
+        if (!minPlayerInventory) setMinPlayerInventory();
+        if (!playerInventory) setPlayerInventory();
 
-        let indent = 5;
+        renderMenu(playerMinInventory);
+        if (playerInventory.active) renderMenu(playerInventory);
 
-        renderMenu({
-            type: 'menu',
-            size: { x: 450, y: 40 },
-            pos: { x: 15, y: 15 },
-            border: '#c9c9c9',
-            align: false,
-            background: '#c9c9c9',
-            children: [
-                {
-                    type: 'menu',
-                    pos: { x: 3, y: 3 },
-                    border: 'white',
-                    align: 'c',
-                    background: false,
-                    children: [
-                        {
-                            type: 'menu',
-                            pos: { x: 0, y: 0 },
-                            size: { x: 444 * player.HP / player.maxHP },
-                            border: false,
-                            align: 'y',
-                            background: 'red',
-                            children: [
-                                {
-                                    type: 'text',
-                                    text: `${player.HP} / ${player.maxHP}`,
-                                    pos: { x: 4 },
-                                    font: 25,
-                                    color: 'yellow',
-                                    align: 'y'
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        });
+        if (activeInvItem && playerInventory.active) renderActiveItem();
+
+        if (dragingSlot) renderDragingSlot();
     }
 
     function renderHealth() {
@@ -88,6 +73,192 @@
                 }
             ]
         });
+    }
+
+    function renderDragingSlot() {
+        dragingSlot.pos.x = input.mouse.coordinates.x;
+        dragingSlot.pos.y = input.mouse.coordinates.y;
+
+        renderMenu(dragingSlot);
+    }
+
+    function renderActiveItem() {
+        let size = { x: 300, y: 400 };
+        renderMenu({
+            type: 'menu',
+            pos: { x: playerInventory.pos.x - 30 - size.x },
+            size: size,
+            border: 'white',
+            background: '#c9c9c9',
+            align: 'y',
+            children: [
+                {
+                    type: 'menu',
+                    pos: { x: 20, y: 20 },
+                    size: { x: 90, y: 90 },
+                    border: 'white',
+                    children: [
+                        {
+                            type: 'image',
+                            indent: 5,
+                            item: activeInvItem
+                        }
+                    ]
+                },
+                {
+                    type: 'text',
+                    text: activeInvItem.name,
+                    font: 20,
+                    pos: { x: 20, y: 115 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: activeInvItem.description,
+                    font: 16,
+                    over: true,
+                    pos: { x: 20, y: 145 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Время восстановления: ' + activeInvItem.timeout / 1000 + ' сек',
+                    font: 17,
+                    pos: { x: 20, y: 330 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Прибавляет HP: ' + activeInvItem.HP,
+                    font: 17,
+                    pos: { x: 20, y: 360 },
+                    color: 'white'
+                }
+            ]
+        });
+    }
+
+    function setMinPlayerInventory() {
+        let children = [];
+
+        let indent = indentBetweenItem * scaleAll,
+            sizeBlock = sizeInventoryBlock * scaleAll;
+
+        let size = { x: indent + (indent + sizeBlock) * player.countMinSlots, y: indent * 2 + sizeBlock },
+            pos = { x: (window.innerWidth - size.x) / 2, y: 10 };
+
+        for (let i = 1; i <= player.countMinSlots; i++) {
+            let x = indent + (indent + sizeBlock) * (i - 1),
+                y = indent;
+
+            children.push({
+                type: 'menu',
+                pos: { x: x, y: y },
+                size: { x: sizeBlock, y: sizeBlock },
+                border: 'white',
+                absolutePos: { x: pos.x + x, y: pos.y + y },
+                children: [
+                    {
+                        type: 'image',
+                        indent: indent,
+                        item: player.minSlots[i],
+                        children: [
+                            {
+                                type: 'text',
+                                text: {
+                                    func: 'getCountMinItem',
+                                    params: {
+                                        i: i
+                                    }
+                                },
+                                pos: { x: -3, y: -7},
+                                font: 13,
+                                color: 'white'
+                            },
+                            {
+                                type: 'text',
+                                text: i,
+                                font: 13,
+                                pos: { x: -3, y: sizeBlock - 7},
+                                color: 'white'
+                            }
+                        ]
+                    }
+                ]
+            });
+        }
+
+        playerMinInventory = {
+            align: false,
+            type: 'menu',
+            pos: pos,
+            size: size,
+            border: 'white',
+            background: '#c9c9c9',
+            children: children
+        };
+    }
+
+    function setPlayerInventory(active = false) {
+        let line = Math.ceil(Math.sqrt(player.countSlots)),
+            countLines = Math.ceil(player.countSlots / line);
+
+        let children = [];
+
+        let indent = indentBetweenItem * scaleAll,
+            sizeBlock = sizeInventoryBlock * scaleAll;
+
+        let size = { x: indent + (indent + sizeBlock) * line, y: indent + (indent + sizeBlock) * countLines },
+            pos = { x: (window.innerWidth - size.x) / 2, y: (window.innerHeight - size.y) / 2 };
+
+        for (let i = 0; i < countLines; i++) {
+            for (let j = 0; j < line; j++) {
+                let x = indent + (indent + sizeBlock) * j,
+                    y = indent + (indent + sizeBlock) * i;
+
+                children.push({
+                    type: 'menu',
+                    pos: { x: x, y: y },
+                    size: { x: sizeBlock, y: sizeBlock },
+                    align: false,
+                    border: 'white',
+                    absolutePos: { x: pos.x + x, y: pos.y + y },
+                    children: [
+                        {
+                            type: 'image',
+                            indent: indent,
+                            item: player.slots[i * countLines + j],
+                            children: [
+                                {
+                                    type: 'text',
+                                    text: {
+                                        func: 'getCountItem',
+                                        params: {
+                                            i: i * countLines + j
+                                        }
+                                    },
+                                    pos: { x: -3, y: -7},
+                                    font: 13,
+                                    color: 'white'
+                                }
+                            ]
+                        }
+                    ]
+                });
+
+                if (i * countLines + j + 1 == player.countSlots) break;
+            }
+        }
+
+        playerInventory = {
+            active: active,
+            type: 'menu',
+            pos: pos,
+            size: size,
+            border: 'white',
+            background: '#c9c9c9',
+            children: children
+        };
     }
 
     /*
@@ -151,7 +322,7 @@
                                 if (parent.size) {
                                     x = (parent.size.x - params.size.x) / 2;
                                 } else {
-                                    x = (window.innerHeight - params.size.x) / 2;
+                                    x = (window.innerWidth - params.size.x) / 2;
                                 }
                             }
                             break;
@@ -190,12 +361,17 @@
                     x += parent.pos.x;
                     y += parent.pos.y;
                 }
-        
+
+                if (params.absolutePos) {
+                    params.absolutePos.x = x;
+                    params.absolutePos.y = y;
+                }
+
                 if (params.border) {
                     ctx.strokeStyle = params.border;
                     ctx.strokeRect(x, y, sx, sy);
                 }
-        
+
                 if (params.background) {
                     ctx.fillStyle = params.background;
                     ctx.fillRect(x, y, sx, sy);
@@ -233,17 +409,172 @@
                     y += parent.pos.y;
                 }
 
+                let text = null;
+                if (params.text instanceof Object) {
+                    text = eval(params.text.func + `(${JSON.stringify(params.text.params)})`);
+                } else {
+                    text = params.text;   
+                }
+
                 ctx.font = `${params.font}px sans-serif`;// рисуем текст (количество HP)
                 ctx.fillStyle = params.color;
-                ctx.fillText(params.text, x, y + params.font);
+
+                if (params.over) {
+                    y += params.font;
+
+                    // символов будет в строке
+                    let countSym = Math.floor(parent.size.x / 10),
+                        countLines = Math.ceil(params.text.length / countSym);
+
+                    for (let i = 0; i < countLines; i++) {
+                        ctx.fillText(text.substr(i * countSym, countSym), x, y + (params.font + 3) * i);
+                    }
+                } else {
+                    ctx.fillText(text, x, y + params.font);
+                }
                 break;
+            case 'image':
+                if (params.item) {
+                    let indent = 5;
+
+                    x = indent + parent.pos.x;
+                    y = indent + parent.pos.y;
+
+                    ctx.drawImage(resources.get(params.item.sprite.url),
+                        params.item.sprite.pos.x, params.item.sprite.pos.y,
+                        params.item.sprite.size.x, params.item.sprite.size.y,
+                        x, y,
+                        parent.size.x - indent * 2, parent.size.y - indent * 2);
+
+                    if (params.children) {
+                        if (params.children.length) {
+                            for (let child of params.children) {
+                                renderMenu(child, parent);
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
+    function setDragItem(drag) {
+        if (drag) {
+            let res = getSlotByPos(input.mouse.coordinates.down, firstSlot);
+
+            if (res && res.item) {
+                dragingSlot = {
+                    type: 'menu',
+                    active: false,
+                    pos: { x: input.mouse.coordinates.x, y: input.mouse.coordinates.y },
+                    size: { x: 20 * scaleAll, y: 20 * scaleAll },
+                    align: false,
+                    children: [
+                        {
+                            type: 'image',
+                            indent: 0,
+                            item: res.item
+                        }
+                    ]
+                };
+            }
+        } else {
+            let res = getSlotByPos(input.mouse.coordinates.up, secondSlot);
+
+            if (res && dragingSlot) {
+                if (res.item) {// если оба слота не null, то действуем (проверяем есть ли конкретный Item и в зависимости от этого  меняем местами или заменяем содержимое)
+                    if (res.item != dragingSlot.children[0].item) {
+                        // меняем местами
+                        if (res.item.id == dragingSlot.children[0].item.id) {
+                            if (secondSlot.inventory[secondSlot.id].max >= secondSlot.inventory[secondSlot.id].count + firstSlot.inventory[firstSlot.id].count) {
+                                secondSlot.inventory[secondSlot.id].count += firstSlot.inventory[firstSlot.id].count;
+                                firstSlot.inventory[firstSlot.id] = null;
+                            } else {
+                                let count = secondSlot.inventory[secondSlot.id].count + firstSlot.inventory[firstSlot.id].count - secondSlot.inventory[secondSlot.id].max;
+                                secondSlot.inventory[secondSlot.id].count = secondSlot.inventory[secondSlot.id].max;
+                                firstSlot.inventory[firstSlot.id].count = count;
+                            }
+                        } else {
+                            let slot_tmp = firstSlot.inventory[firstSlot.id];
+                            firstSlot.inventory[firstSlot.id] = secondSlot.inventory[secondSlot.id];
+                            secondSlot.inventory[secondSlot.id] = slot_tmp;
+                        }
+                    }
+                } else {
+                    // перемещаем
+                    secondSlot.inventory[secondSlot.id] = firstSlot.inventory[firstSlot.id];
+                    firstSlot.inventory[firstSlot.id] = null;
+                }
+            
+                setPlayerInventory(true);
+                setMinPlayerInventory();
+            }
+
+            dragingSlot = null;
+            firstSlot = {
+                id: null,
+                inventory: null
+            };
+            secondSlot = {
+                id: null,
+                inventory: null
+            };
+        }
+    }
+
+    function getSlotByPos(pos, target) {
+        if (playerInventory.active) {
+            for (let slot_tmp of playerInventory.children) {
+                if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, pos)) {
+                    target.inventory = player.slots;
+                    target.id = slot_tmp.children[0].children[0].text.params.i;
+                    return slot_tmp.children[0];
+                }
+            }
+        }
+
+        for (let slot_tmp of playerMinInventory.children) {
+            if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, pos)) {
+                target.inventory = player.minSlots;
+                target.id = slot_tmp.children[0].children[0].text.params.i;
+                return slot_tmp.children[0];
+            }
+        }
+
+        return null;
+    }
+
+    function setItemByPos() {
+        for (let slot_tmp of playerInventory.children) {
+            if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, { x: input.mouse.coordinates.x, y: input.mouse.coordinates.y })) {
+                activeInvItem = slot_tmp.children[0].item;
+                return;
+            }
+        }
+        activeInvItem = null;
+    }
+
+    function getCountItem(params) {
+        return player.slots[params.i].count;
+    }
+
+    function getCountMinItem(params) {
+        return player.minSlots[params.i].count;
+    }
+
+    function setActiveItem() {
+        if (playerInventory.active) {
+            setItemByPos();
+        } else {
+            activeInvItem = null;
         }
     }
 
     window.hood = {
         render: render,
-        setPlayerInventory: inventory => {
-            playerImventory = inventory;
-        }
+        showPlayerInventory: () => playerInventory.active = !playerInventory.active,
+        setDragItem: setDragItem,
+        setMinPlayerInventory: setMinPlayerInventory,
+        setActiveItem: setActiveItem
     }
 })();

@@ -13,3 +13,7 @@ function boxCollides(pos, size, pos2, size2) {
 function collidesWithScreen(pos, size) {
     return boxCollides(pos, size, { x: 0, y: 0 }, { x: window.innerWidth, y: window.innerHeight });
 }
+
+function collidesWithDot(pos, size, pos2) {
+    return boxCollides(pos, size, pos2, { x: 0, y: 0 });
+}

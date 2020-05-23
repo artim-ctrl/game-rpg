@@ -12,9 +12,24 @@
 				this.clickCoordinates.y = null;
 			},
 			coordinates: {
+				down: {
+					x: null,
+					y: null
+				},
+				up: {
+					x: null,
+					y: null
+				},
 				x: null,
 				y: null
 			}
+		},
+		callbacks = {// колбэки срабатывабщие по событию
+			mouseup: [],
+			mousedown: [],
+			keydown: {},// обьект потому что клавиш много, на каждую можно повесить событие
+			keyup: {},
+			mousemove: []
 		};
 
 	function Press(key, status) {
@@ -39,11 +54,19 @@
 	}
 
 	document.addEventListener('keydown', (key) => {
+		let was = false;
+		if (pressedKeys[key.key.toUpperCase()]) was = true;
+
 		Press(key, true);
+
+		if (!was)
+			playCallbacks('keydown', key.key);
 	});
 
 	document.addEventListener('keyup', (key) => {
 		Press(key, false);
+
+		playCallbacks('keyup', key.key);
 	});
 
 	document.addEventListener('click', (e) => {
@@ -51,23 +74,47 @@
 		mouse.clickCoordinates.y = e.pageY;
 	});
 
-	document.addEventListener('mousedown', () => {
+	document.addEventListener('mousedown', (e) => {
 		mouse.clicked = true;
+
+		mouse.coordinates.down.x = e.pageX;
+		mouse.coordinates.down.y = e.pageY;
+
+		playCallbacks('mousedown');
 	});
 
-	document.addEventListener('mouseup', () => {
+	document.addEventListener('mouseup', (e) => {
 		mouse.clicked = false;
+		
+		mouse.coordinates.up.x = e.pageX;
+		mouse.coordinates.up.y = e.pageY;
+
+		playCallbacks('mouseup');
 	});
 
 	document.addEventListener('mousemove', (e) => {
 		mouse.coordinates.x = e.pageX;
 		mouse.coordinates.y = e.pageY;
+
+		playCallbacks('mousemove');
 	});
+
+	function playCallbacks(caller, key = null) {
+		if (key) {
+			if (callbacks[caller][key]) {
+				callbacks[caller][key].forEach(callback => callback());
+			}
+			return;
+		}
+
+		callbacks[caller].forEach(callback => callback());
+	}
 
 	window.input = {
 		isPressed: (key) => {
 			return pressedKeys[key.toUpperCase()];
 		},
-		mouse: mouse
+		mouse: mouse,
+		callbacks: callbacks
 	};
 })();

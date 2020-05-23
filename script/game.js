@@ -1,6 +1,6 @@
 "use strict";
 
-let _objects = {};
+let usingFood = false;// флаг, true если игрок сьел пищу и сейчас тикает таймер
 
 function main() {
     dt = (Date.now() - lastTime) || 1;// чтоб ыне было бага если время кадра слишком низкое (равно 0)
