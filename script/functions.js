@@ -17,3 +17,25 @@ function collidesWithScreen(pos, size) {
 function collidesWithDot(pos, size, pos2) {
     return boxCollides(pos, size, pos2, { x: 0, y: 0 });
 }
+
+function collidesWithPlayer(pos, size) {
+    return boxCollides(pos, size, player.pos, player.size);
+}
+
+function distanceWithBox(pos, size, pos2, size2, vector = null) {
+    let mid1 = { x: pos.x + size.x / 2, y: pos.y + size.y / 2 },
+        mid2 = { x: pos2.x + size2.x / 2, y: pos2.y + size2.y / 2 };
+
+    let coors = { x: mid2.x - mid1.x, y: mid2.y - mid1.y };
+
+    if (vector) {
+        vector.x = coors.x;
+        vector.y = coors.y;
+    }
+
+    return Math.sqrt(coors.x * coors.x + coors.y * coors.y);
+}
+
+function distanceWithPlayer(pos, size, vector = null) {
+    return distanceWithBox(pos, size, player.pos, player.size, vector);
+}

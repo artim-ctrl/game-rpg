@@ -17,7 +17,6 @@ let player = null;// переменная игрока
 (function() {
     resources.load(["source/player.png",// грузим ресуррсы
                     "source/terrain.png",
-                    "source/box.png",
                     "source/food.png",
                     "source/weapon.png",
                     "source/enemy.png"]);
@@ -60,6 +59,9 @@ let player = null;// переменная игрока
 
         endPos = map.getMaxPos();
 
+        globalTranslation.x = -(endPos.x / 2 - window.innerWidth / 2);
+        globalTranslation.y = -(endPos.y / 2 - window.innerHeight / 2);
+
         player = new Player(getVar('player'));
 
         input.callbacks.keydown.i = [];
@@ -81,6 +83,8 @@ let player = null;// переменная игрока
             hood.setActiveItem();
         });
 
+        generateEnemies();
+
         main();
     }
 })();
@@ -88,11 +92,13 @@ let player = null;// переменная игрока
 (function() {
     let vars = {
         player: {
-            pos: { x: 200, y: 200 },
+            pos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
             size: { x: 26 * scaleAll, y: 36 * scaleAll },
             speed: 0.3,
             stayFrame: 1,
             maxHP: 100,
+            countMinSlots: 4,
+            countSlots: 7,
             sprite: {
                 anim: {
                     down: {
@@ -128,13 +134,47 @@ let player = null;// переменная игрока
                 name: 'Свинина',
                 id: 'meet_pig',
                 max: 10,
-                description: 'Свинка пепа. хорошоая была свинка но плохая но блин хорошая черт возьми мы гуляли вместе но пошла она в жопу плохая',
+                description: 'Свинка пепа',
                 timeout: 500,
                 HP: 10,
                 sprite: {
                     url: 'source/food.png',
                     pos: { x: 0, y: 0 },
                     size: { x: 16, y: 16 }
+                }
+            }
+        },
+        weapon: {
+
+        },
+        enemy: {
+            level_1: {
+                pos: { x: null, y: null },
+                size: { x: 26 * scaleAll, y: 36 * scaleAll },
+                speed: 0.15,
+                stayFrame: 1,
+                maxHP: 25,
+                timeoutHit: 1000,
+                countSlots: 2,
+                hitHP: 5,
+                distance: 150,
+                level: 1,
+                sprite: {
+                    anim: {
+                        up: {
+                            pos: { x: 0, y: 0 },
+                            speed: .01,
+                            size: { x: 26, y: 36 },
+                            frames: [0, 1, 2]
+                        },
+                        down: {
+                            pos: { x: 0, y: 36 },
+                            speed: .01,
+                            size: { x: 26, y: 36 },
+                            frames: [0, 1, 2]
+                        }
+                    },
+                    url: 'source/enemy.png'
                 }
             }
         }

@@ -14,9 +14,9 @@ class Player extends GameObject {
         this.HP = this.maxHP;
 
         // перс в роли ящика
-        this.countSlots = 7;
+        this.countSlots = params.countSlots;
         this.slots = {};
-        this.countMinSlots = 4;
+        this.countMinSlots = params.countMinSlots;
         this.minSlots = {};
 
         for (let i = 0; i < this.countMinSlots; i++) {
@@ -35,6 +35,13 @@ class Player extends GameObject {
     }
 
     update() {
+        // ограничение сокрости по диагонали
+        if ((this.translation.x || this.lastgt.x != globalTranslation.x) && (this.translation.y || this.lastgt.y != globalTranslation.y)) {
+            let speed = Math.sqrt(Math.pow(this.translation.x || this.translation.y, 2) / 2);
+            this.translation.x = speed * ((this.translation.x / (Math.abs(this.translation.x))) || 0);
+            this.translation.y = speed * ((this.translation.y / (Math.abs(this.translation.y))) || 0);
+        }
+
         this.pos.x += this.translation.x;
         this.pos.y += this.translation.y;
 
@@ -68,5 +75,9 @@ class Player extends GameObject {
         if (player.HP > player.maxHP) {
             player.HP = player.maxHP;
         }
+    }
+
+    hit(k) {
+        this.HP -= k;
     }
 }

@@ -2,6 +2,13 @@
 
 let usingFood = false;// флаг, true если игрок сьел пищу и сейчас тикает таймер
 
+let enemies = {
+    1: null,
+    2: null,
+    3: null,
+    4: null
+};
+
 function main() {
     dt = (Date.now() - lastTime) || 1;// чтоб ыне было бага если время кадра слишком низкое (равно 0)
 
@@ -69,21 +76,31 @@ function handleInput() {
     }
 
     // ограничение сокрости по диагонали
-    if (player.translation.x && player.translation.y) {
-        let speed = Math.sqrt(Math.pow(player.translation.x, 2) / 2);
-        player.translation.x = speed * (player.translation.x / (Math.abs(player.translation.x)));
-        player.translation.y = speed * (player.translation.y / (Math.abs(player.translation.y)));
-    }
+    // if (player.translation.x && player.translation.y) {
+    //     let speed = Math.sqrt(Math.pow(player.translation.x, 2) / 2);
+    //     player.translation.x = speed * (player.translation.x / (Math.abs(player.translation.x)));
+    //     player.translation.y = speed * (player.translation.y / (Math.abs(player.translation.y)));
+    // }
 
     checkCollisions();
 }
 
 function update() {
     player.update();
+
+    // апдейтим врагов
+    for (let i = 1; i <= 4; i++) {
+        if (enemies[i]) enemies[i].update();
+    }
 }
 
 function render() {
     map.render();// рисуем карту
+
+    // рисуем врагов
+    for (let i = 1; i <= 4; i++) {
+        if (enemies[i]) enemies[i].render(true);
+    }
 
     player.render();// рисуем перса
 
@@ -109,4 +126,18 @@ function checkCollisionsWithEnds() {
         player.pos.y = window.innerHeight - player.size.y;
         player.translation.y = 0;
     }
+}
+
+function generateEnemies() {
+    enemies[1] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[1].pos = { x: 150, y: 150 };
+
+    enemies[2] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[2].pos = { x: endPos.x - 150 - enemies[2].size.x, y: 150 };
+
+    enemies[3] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[3].pos = { x: 150, y: endPos.y - 150 - enemies[3].size.y };
+
+    enemies[4] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[4].pos = { x: endPos.x - 150 - enemies[4].size.x, y: endPos.y - 150 - enemies[4].size.y };
 }

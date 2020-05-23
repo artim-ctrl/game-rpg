@@ -17,9 +17,13 @@ class GameObject {
         
     }
 
-    render() {// отрисовка обьекта
-        if (!collidesWithScreen(this.pos, this.size)) return;// не рисуем то, что находится за картой
+    render(globTran = false) {// отрисовка обьекта
+        let gt = { x: 0, y: 0 };
+
+        if (globTran) gt = globalTranslation;
         
+        if (!collidesWithScreen({ x: this.pos + gt.x, y: this.pos.y + gt.y }, this.size)) return;// не рисуем то, что находится за картой
+
         this._index += dt * this.sprite.anim[this.currAnim].speed;// считаем кадр
         this.frame = this.sprite.anim[this.currAnim].frames[Math.floor(this._index) % this.sprite.anim[this.currAnim].frames.length];
         
@@ -40,7 +44,7 @@ class GameObject {
             this.sprite.anim[this.currAnim].pos.y,
             this.sprite.anim[this.currAnim].size.x,
             this.sprite.anim[this.currAnim].size.y,
-            this.pos.x, this.pos.y,
+            this.pos.x + gt.x, this.pos.y + gt.y,
             this.size.x, this.size.y
         );
     }
