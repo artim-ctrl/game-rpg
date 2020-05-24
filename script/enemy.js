@@ -30,9 +30,33 @@ class Enemy extends GameObject {
 
         // уровень врага
         this.level = params.level;
+
+        for (let i = 0; i < params.possible.length; i++) {
+            let elems = params.possible[i].split(':');
+            let clas = elems[0],
+                obj = window.getVar(elems[1]),
+                chance = elems[2];
+
+            let count = 0;
+            for (let j = 1; j <= obj.max; j++) {
+                if (Math.random() > Math.pow(chance, j)) break;
+                count++;
+            }
+            
+            if (count) {
+                for (let j = 0; j < this.countSlots; j++) {
+                    if (!this.slots[j]) {
+                        this.slots[j] = eval('new ' + clas + '(' + JSON.stringify(obj) + ', ' + count + ');');
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     update() {
+        if (this.HP <= 0) this.die();
+
         // ограничение сокрости по диагонали
         if (this.translation.x && this.translation.y) {
             let speed = Math.sqrt(Math.pow(this.translation.x || this.translation.y, 2) / 2);
@@ -83,6 +107,42 @@ class Enemy extends GameObject {
                 this.translation.x += (vector.x / Math.abs(vector.x)) * dt * this.speed;
                 this.translation.y += (vector.y / Math.abs(vector.y)) * dt * this.speed;
             }
+        }
+    }
+
+    hit(k) {
+        this.HP -= k;
+
+        if (this.HP < 0) {
+            this.HP = 0;
+        }
+    }
+
+    die() {
+        for (let i = 1; i <= 4; i++) {
+            if (this === enemies[i]) {
+                setTimeout(() => {
+                    generateEnemy(i, this.level);
+                }, 5000);
+
+                enemies[i] = null;
+
+                this.giveItems();
+            }
+        }
+    }
+
+    giveItems() {
+        for (let i = 0; i < this.countSlots; i++) {
+            if (!this.slots[i]) continue;
+
+            let pos = {
+                x: ((Math.random() > 0.5) ? 1 : -1) * (Math.random() * 10 * scaleAll),
+                y: ((Math.random() > 0.5) ? 1 : -1) * (Math.random() * 10 * scaleAll)
+            };
+            
+            this.slots[i].pos = { x: this.pos.x + pos.x, y: this.pos.y + pos.y };
+            objs.push(this.slots[i]);
         }
     }
 }

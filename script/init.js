@@ -12,6 +12,13 @@ let ctx = null,// контекст (на нем будет все рисоват
 let lastTime,// для вычисления отрезка времени от прошлого кадра до нынешнего
     dt = 0;
 
+let startEnemyPos = {
+    1: null,
+    2: null,
+    3: null,
+    4: null
+};
+
 let player = null;// переменная игрока
 
 (function() {
@@ -65,10 +72,21 @@ let player = null;// переменная игрока
         player = new Player(getVar('player'));
 
         input.callbacks.keydown.i = [];
-        input.callbacks.keydown.i.push(() => hood.showPlayerInventory());
+        input.callbacks.keydown.i.push(() => { hood.showPlayerInventory() });
 
-        input.callbacks.mousedown.push(() => hood.setDragItem(true));
-        input.callbacks.mouseup.push(() => hood.setDragItem(false));
+        input.callbacks.keydown.f = [];
+        input.callbacks.keydown.f.push(() => { takeItem() });
+
+        input.callbacks.mousedownl.push(() => { hood.setDragItem(true) });
+        input.callbacks.mouseupl.push(() => { hood.setDragItem(false) });
+        
+        input.callbacks.mousedownl.push(() => {
+            if (!hood.invIsActive()) {
+                if (player.weapon) player.weapon.bump();
+            }
+        });
+        
+        input.callbacks.mouseupr.push(() => { hood.removeItem() });
 
         for (let i = 1; i <= player.countMinSlots; i++) {
             input.callbacks.keydown[i] = [];
@@ -82,6 +100,11 @@ let player = null;// переменная игрока
         input.callbacks.mousemove.push(() => {
             hood.setActiveItem();
         });
+
+        startEnemyPos[1] = { x: 150, y: 150 };
+        startEnemyPos[2] = { x: endPos.x - 150, y: 150 };
+        startEnemyPos[3] = { x: 150, y: endPos.y - 150 };
+        startEnemyPos[4] = { x: endPos.x - 150, y: endPos.y - 150 };
 
         generateEnemies();
 
@@ -98,7 +121,7 @@ let player = null;// переменная игрока
             stayFrame: 1,
             maxHP: 100,
             countMinSlots: 4,
-            countSlots: 7,
+            countSlots: 9,
             sprite: {
                 anim: {
                     down: {
@@ -135,8 +158,8 @@ let player = null;// переменная игрока
                 id: 'meet_pig',
                 max: 10,
                 description: 'Свинка пепа',
-                timeout: 500,
-                HP: 10,
+                timeout: 800,
+                HP: 3,
                 sprite: {
                     url: 'source/food.png',
                     pos: { x: 0, y: 0 },
@@ -145,7 +168,29 @@ let player = null;// переменная игрока
             }
         },
         weapon: {
+            igril: {
+                name: 'Игриль',
+                id: 'igril',
+                max: 1,
+                pos: { x: null, y: null },
+                size: { x: 40 * scaleAll, y: 50 * scaleAll },
+                description: 'Детская игрушка',
+                timeout: 800,
+                HP: 5,
+                stayFrame: 0,
+                sprite: {
+                    pos: { x: 0, y: 0 },// это для отображения в слотах
+                    size: { x: 35, y: 31 },
 
+                    anim: {// это анимации для "отважной" битвы xD
+                        pos: { x: 0, y: 0 },
+                        speed: .01,
+                        size: { x: 40, y: 50 },
+                        frames: [0, 1, 2]
+                    },
+                    url: 'source/weapon.png'
+                }
+            }
         },
         enemy: {
             level_1: {
@@ -157,7 +202,8 @@ let player = null;// переменная игрока
                 timeoutHit: 1000,
                 countSlots: 2,
                 hitHP: 5,
-                distance: 150,
+                distance: 85 * scaleAll,
+                possible: ['Food:food.meet_pig:0.8'],
                 level: 1,
                 sprite: {
                     anim: {
@@ -183,8 +229,22 @@ let player = null;// переменная игрока
     window.getVar = (key) => {
         let keys = key.split('.');
 
-        if (keys.length != 1) return JSON.parse(JSON.stringify(vars[keys[0]][keys[1]]));
+        if (keys.length != 1) {
+            return JSON.parse(JSON.stringify(vars[keys[0]][keys[1]]));
+        }
 
         return JSON.parse(JSON.stringify(vars[key]));
+    };
+
+    window.varExist = (key) => {
+        let keys = key.split('.');
+
+        if (keys.length != 1) {
+            if (!vars[keys[0]][keys[1]]) return false;
+        }
+
+        if (!vars[key]) return false;
+
+        return true;
     };
 })();

@@ -19,8 +19,11 @@
     let activeInvItem = null;
 
     function render() {
+        renderEnemyHealth();
         renderHealth();
         renderPlayerInventory();
+
+        if (dragingSlot) renderDragingSlot();
     }
 
     function renderPlayerInventory() {
@@ -31,8 +34,6 @@
         if (playerInventory.active) renderMenu(playerInventory);
 
         if (activeInvItem && playerInventory.active) renderActiveItem();
-
-        if (dragingSlot) renderDragingSlot();
     }
 
     function renderHealth() {
@@ -73,6 +74,29 @@
                 }
             ]
         });
+    }
+
+    function renderEnemyHealth() {
+        for (let i = 1; i <= 4; i++) {
+            if (!(enemies[i] instanceof Enemy)) continue;
+            if (!collidesWithScreen({ x: enemies[i].pos.x + globalTranslation.x, y: enemies[i].pos.y + globalTranslation.y }, { x: enemies[i].size.x, y: enemies[i].size.y })) continue;
+            renderMenu({
+                type: 'menu',
+                pos: { x: 0, y: 0 },
+                size: { x: enemies[i].size.x, y: enemies[i].size.y / 10 },
+                border: 'white',
+                background: '#c9c9c9',
+                children: [
+                    {
+                        type: 'menu',
+                        pos: { x: 0, y: 0 },
+                        size: { x: enemies[i].size.x * enemies[i].HP / enemies[i].maxHP },
+                        align: 'y',
+                        background: 'red'
+                    }
+                ]
+            }, { pos: { x: enemies[i].pos.x + globalTranslation.x, y: enemies[i].pos.y + globalTranslation.y }, size: { x: enemies[i].size.x, y: enemies[i].size.y } });
+        }
     }
 
     function renderDragingSlot() {
@@ -122,6 +146,13 @@
                 },
                 {
                     type: 'text',
+                    text: 'Максимум на слот: ' + activeInvItem.max,
+                    font: 17,
+                    pos: { x: 20, y: 300 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
                     text: 'Время восстановления: ' + activeInvItem.timeout / 1000 + ' сек',
                     font: 17,
                     pos: { x: 20, y: 330 },
@@ -129,7 +160,7 @@
                 },
                 {
                     type: 'text',
-                    text: 'Прибавляет HP: ' + activeInvItem.HP,
+                    text: 'Прибавляет(отнимает) HP: ' + activeInvItem.HP,
                     font: 17,
                     pos: { x: 20, y: 360 },
                     color: 'white'
@@ -259,6 +290,61 @@
             background: '#c9c9c9',
             children: children
         };
+        activeInvItem = null;
+    }
+
+    function renderDeath() {
+        renderMenu({
+            type: 'menu',
+            size: { x: 300, y: 200 },
+            border: 'white',
+            align: 'c',
+            background: '#c9c9c9',
+            children: [
+                {
+                    type: 'text',
+                    text: 'Вы проиграли!',
+                    font: 20,
+                    pos: { x: 15, y: 20},
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Перезагрузите страницу, чтобы начать снова!',
+                    font: 18,
+                    over: true,
+                    pos: { x: 15, y: 50},
+                    color: 'white'
+                }
+            ]
+        });
+    }
+
+    function renderWin() {
+        renderMenu({
+            type: 'menu',
+            size: { x: 300, y: 200 },
+            border: 'white',
+            align: 'c',
+            background: '#c9c9c9',
+            children: [
+                {
+                    type: 'text',
+                    text: 'Вы выиграли!',
+                    font: 20,
+                    pos: { x: 15, y: 20},
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Перезагрузите страницу, чтобы начать снова!',
+                    font: 18,
+                    over: true,
+                    pos: { x: 15, y: 50},
+                    color: 'white'
+                }
+            ]
+        });
     }
 
     /*
@@ -555,11 +641,11 @@
     }
 
     function getCountItem(params) {
-        return player.slots[params.i].count;
+        return player.slots[params.i].count != 1 ? player.slots[params.i].count : '';
     }
 
     function getCountMinItem(params) {
-        return player.minSlots[params.i].count;
+        return player.minSlots[params.i].count != 1 ? player.minSlots[params.i].count : '';
     }
 
     function setActiveItem() {
@@ -570,11 +656,39 @@
         }
     }
 
+    function removeItem() {
+        removeItemByPos();
+    }
+
+    function removeItemByPos() {
+        if (playerInventory.active) {
+            for (let slot_tmp of playerInventory.children) {
+                if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, input.mouse.coordinates.up)) {
+                    player.slots[slot_tmp.children[0].children[0].text.params.i] = null;
+                    setPlayerInventory(true);
+                }
+            }
+        }
+
+        for (let slot_tmp of playerMinInventory.children) {
+            if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, input.mouse.coordinates.up)) {
+                player.minSlots[slot_tmp.children[0].children[0].text.params.i] = null;
+                setMinPlayerInventory();
+            }
+        }
+    }
+
     window.hood = {
         render: render,
         showPlayerInventory: () => playerInventory.active = !playerInventory.active,
+        showPlayerInventoryParam: (show) => playerInventory.active = show,
         setDragItem: setDragItem,
         setMinPlayerInventory: setMinPlayerInventory,
-        setActiveItem: setActiveItem
+        setPlayerInventory: setPlayerInventory,
+        setActiveItem: setActiveItem,
+        renderDeath: renderDeath,
+        invIsActive: () => { return playerInventory.active },
+        removeItem: removeItem,
+        renderWin: renderWin
     }
 })();

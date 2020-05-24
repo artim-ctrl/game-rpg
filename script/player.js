@@ -13,6 +13,9 @@ class Player extends GameObject {
         this.maxHP = params.maxHP;
         this.HP = this.maxHP;
 
+        // оружие
+        this.weapon = null;
+
         // перс в роли ящика
         this.countSlots = params.countSlots;
         this.slots = {};
@@ -27,11 +30,9 @@ class Player extends GameObject {
             this.slots[i] = null;
         }
 
-        this.slots[0] = new Food(window.getVar('food.meet_pig'), 2);
+        this.slots[0] = new Food(window.getVar('food.meet_pig'), 10);
 
-        this.slots[1] = new Food(window.getVar('food.meet_pig'), 5);
-
-        this.slots[2] = new Food(window.getVar('food.meet_pig'), 6);
+        this.slots[4] = new Weapon(window.getVar('weapon.igril'), 1);
     }
 
     update() {
@@ -79,5 +80,16 @@ class Player extends GameObject {
 
     hit(k) {
         this.HP -= k;
+
+        if (this.HP < 0) {
+            this.HP = 0;
+        }
+    }
+
+    setWeapon(weapon) {
+        this.weapon = weapon;
+
+        this.weapon.pos.x = this.size.x / 2;
+        this.weapon.pos.y = this.size.y / 2 - this.weapon.size.y / 2;
     }
 }

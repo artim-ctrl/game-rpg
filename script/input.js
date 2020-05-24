@@ -25,8 +25,10 @@
 			}
 		},
 		callbacks = {// колбэки срабатывабщие по событию
-			mouseup: [],
-			mousedown: [],
+			mouseupl: [],
+			mousedownl: [],
+			mouseupr: [],
+			mousedownr: [],
 			keydown: {},// обьект потому что клавиш много, на каждую можно повесить событие
 			keyup: {},
 			mousemove: []
@@ -79,8 +81,8 @@
 
 		mouse.coordinates.down.x = e.pageX;
 		mouse.coordinates.down.y = e.pageY;
-
-		playCallbacks('mousedown');
+		
+		playCallbacks('mousedown' + (e.button == 0 ? 'l' : 'r'));
 	});
 
 	document.addEventListener('mouseup', (e) => {
@@ -89,7 +91,7 @@
 		mouse.coordinates.up.x = e.pageX;
 		mouse.coordinates.up.y = e.pageY;
 
-		playCallbacks('mouseup');
+		playCallbacks('mouseup' + (e.button == 0 ? 'l' : 'r'));
 	});
 
 	document.addEventListener('mousemove', (e) => {
@@ -97,6 +99,10 @@
 		mouse.coordinates.y = e.pageY;
 
 		playCallbacks('mousemove');
+	});
+
+	document.addEventListener('contextmenu', (e) => {
+		e.preventDefault();
 	});
 
 	function playCallbacks(caller, key = null) {
