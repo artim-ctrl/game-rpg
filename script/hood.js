@@ -37,17 +37,20 @@
     }
 
     function renderHealth() {
+        let indent = 3;
+        let sizex = 150 * window.innerWidth / 1000 * scaleAll;
+
         renderMenu({
             type: 'menu',
-            size: { x: 450, y: 40 },
+            size: { x: sizex, y: 50 },
             pos: { x: 15, y: 15 },
-            border: '#c9c9c9',
+            border: 'grey',
             align: false,
-            background: '#c9c9c9',
+            background: 'grey',
             children: [
                 {
                     type: 'menu',
-                    pos: { x: 3, y: 3 },
+                    pos: { x: indent, y: indent },
                     border: 'white',
                     align: 'c',
                     background: false,
@@ -55,7 +58,7 @@
                         {
                             type: 'menu',
                             pos: { x: 0, y: 0 },
-                            size: { x: 444 * player.HP / player.maxHP },
+                            size: { x: (sizex - indent * 2) * player.HP / player.maxHP },
                             border: false,
                             align: 'y',
                             background: 'red',
@@ -85,7 +88,7 @@
                 pos: { x: 0, y: 0 },
                 size: { x: enemies[i].size.x, y: enemies[i].size.y / 10 },
                 border: 'white',
-                background: '#c9c9c9',
+                background: 'grey',
                 children: [
                     {
                         type: 'menu',
@@ -113,7 +116,7 @@
             pos: { x: playerInventory.pos.x - 30 - size.x },
             size: size,
             border: 'white',
-            background: '#c9c9c9',
+            background: 'grey',
             align: 'y',
             children: [
                 {
@@ -202,7 +205,7 @@
                                         i: i
                                     }
                                 },
-                                pos: { x: -3, y: -7},
+                                pos: { x: 2, y: 0 },
                                 font: 13,
                                 color: 'white'
                             },
@@ -210,8 +213,15 @@
                                 type: 'text',
                                 text: i,
                                 font: 13,
-                                pos: { x: -3, y: sizeBlock - 7},
+                                pos: { x: -9, y: sizeBlock - 5},
                                 color: 'white'
+                            },
+                            {
+                                type: 'menu',
+                                pos: { x: 0, y: 0 },
+                                align: 'c',
+                                background: (usingFood ? 'red' : false),
+                                opacity: 0.4
                             }
                         ]
                     }
@@ -225,7 +235,7 @@
             pos: pos,
             size: size,
             border: 'white',
-            background: '#c9c9c9',
+            background: 'grey',
             children: children
         };
     }
@@ -268,7 +278,7 @@
                                             i: i * countLines + j
                                         }
                                     },
-                                    pos: { x: -3, y: -7},
+                                    pos: { x: 2, y: 0 },
                                     font: 13,
                                     color: 'white'
                                 }
@@ -287,7 +297,7 @@
             pos: pos,
             size: size,
             border: 'white',
-            background: '#c9c9c9',
+            background: 'grey',
             children: children
         };
         activeInvItem = null;
@@ -299,7 +309,7 @@
             size: { x: 300, y: 200 },
             border: 'white',
             align: 'c',
-            background: '#c9c9c9',
+            background: 'grey',
             children: [
                 {
                     type: 'text',
@@ -326,7 +336,7 @@
             size: { x: 300, y: 200 },
             border: 'white',
             align: 'c',
-            background: '#c9c9c9',
+            background: 'grey',
             children: [
                 {
                     type: 'text',
@@ -453,6 +463,10 @@
                     params.absolutePos.y = y;
                 }
 
+                if (params.opacity) {
+                    ctx.globalAlpha = params.opacity;
+                }
+
                 if (params.border) {
                     ctx.strokeStyle = params.border;
                     ctx.strokeRect(x, y, sx, sy);
@@ -462,6 +476,8 @@
                     ctx.fillStyle = params.background;
                     ctx.fillRect(x, y, sx, sy);
                 }
+
+                ctx.globalAlpha = 1;
 
                 if (params.children) {
                     if (params.children.length) {
@@ -592,7 +608,7 @@
                     firstSlot.inventory[firstSlot.id] = null;
                 }
             
-                setPlayerInventory(true);
+                setPlayerInventory(hood.invIsActive());
                 setMinPlayerInventory();
             }
 

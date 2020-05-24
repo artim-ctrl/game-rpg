@@ -82,9 +82,9 @@ class Weapon extends Item {
         for (let i = 1; i <= 4; i++) {
             let tranX = (player.currAnim == 'left' || player.currAnim == 'up') ? this.size.x : 0;
             if ((enemies[i] instanceof Enemy) && boxCollides({ x: enemies[i].pos.x + globalTranslation.x, y: enemies[i].pos.y + globalTranslation.y}, enemies[i].size, { x: this.pos.x + player.pos.x - tranX, y: this.pos.y + player.pos.y}, this.size)) {
-                if (!this.using) {
-                    enemies[i].hit(this.HP);
-                }
+                if (this.using) return;
+                
+                enemies[i].hit(this.HP);
 
                 setTimeout(() => {
                     this.using = false;

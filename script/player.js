@@ -8,6 +8,7 @@ class Player extends GameObject {
 
         // запоминает globalTranslation прошлого кадра, сравнивает с текущим и если не равны позволяет анимации проигрываться
         this.lastgt = { x: 0, y: 0 };
+        this.lastpos = { x: 0, y: 0 };
 
         // здоровье
         this.maxHP = params.maxHP;
@@ -30,14 +31,14 @@ class Player extends GameObject {
             this.slots[i] = null;
         }
 
-        this.slots[0] = new Food(window.getVar('food.meet_pig'), 10);
+        this.minSlots[1] = new Food(window.getVar('food.meet_pig'), 10);
 
         this.slots[4] = new Weapon(window.getVar('weapon.igril'), 1);
     }
 
     update() {
         // ограничение сокрости по диагонали
-        if ((this.translation.x || this.lastgt.x != globalTranslation.x) && (this.translation.y || this.lastgt.y != globalTranslation.y)) {
+        if ((this.lastpos.x != this.pos.x + this.translation.x + globalTranslation.x) && (this.lastpos.y != this.pos.y + this.translation.y + globalTranslation.y)) {
             let speed = Math.sqrt(Math.pow(this.translation.x || this.translation.y, 2) / 2);
             this.translation.x = speed * ((this.translation.x / (Math.abs(this.translation.x))) || 0);
             this.translation.y = speed * ((this.translation.y / (Math.abs(this.translation.y))) || 0);
@@ -68,6 +69,7 @@ class Player extends GameObject {
         this.translation = { x: 0, y: 0 };
 
         this.lastgt = { x: globalTranslation.x, y: globalTranslation.y };
+        this.lastpos = { x: this.pos.x + globalTranslation.x, y: this.pos.y + globalTranslation.y };
     }
 
     addHP(k) {
