@@ -1,122 +1,148 @@
-class Enemy extends Player {
-  constructor(spriteUrl, pos, anims, speed, translation, size, maxHP, countSlots, hitHP, reductionHitTime, stay) {
-    super(spriteUrl, pos, anims, speed, translation, size, maxHP, countSlots, stay);
-    this.hitHP = hitHP;
-    this.reductionHitTime = reductionHitTime;
-    this.currReductionTime = 0;
-  }
+class Enemy extends GameObject {
+    constructor(params) {
+        super(params);
 
-  // нужно добавить ИИ
-  update(dt, player, enemy, box) {
-    // если HP меньше 0 враг умирает
-    if (this.HP <= 0) {
-      for (let i = 0; i < enemy.length; i++) {
-        if (enemy[i] === this) {// удаляем
+        // переменная сдвига на следующем кадре
+        this.translation = { x: 0, y: 0 };
+        this.speed = params.speed;
 
-          // создаем box на месте смерти перса
-          box.push( new Box(
-            enemy[i].countSlots,
-            {// спрайт
-              url: "source/box.png",
-              pos: [0, 0],
-              size: [24, 24]
-            },
-            [Math.floor(enemy[i].pos[0] / map.sizeBlock),
-            Math.floor(enemy[i].pos[1] / map.sizeBlock)],
-            [24 * player.scaleAll, 24 * player.scaleAll],
-            enemy[i].slots
-          ) );
+        // здоровье
+        this.maxHP = params.maxHP;
+        this.HP = this.maxHP;
 
-          enemy.splice(i, 1);// удаляем врага
-          return;
+        // итемы врага
+        this.countSlots = params.countSlots;
+        this.slots = {};
+
+        for (let i = 0; i < this.countSlots; i++) {
+            this.slots[i] = null;
         }
-      }
+
+        // наносимый урон
+        this.hitHP = params.hitHP;
+
+        // флаг, тикает ли таймер после удара
+        this.hiting = false;
+        this.timeoutHit = params.timeoutHit;
+
+        // расстояние на котором враг видит игрока и идет к нему
+        this.distance = params.distance;
+
+        // уровень врага
+        this.level = params.level;
+
+        for (let i = 0; i < params.possible.length; i++) {
+            let elems = params.possible[i].split(':');
+            let clas = elems[0],
+                obj = window.getVar(elems[1]),
+                chance = elems[2];
+
+            let count = 0;
+            for (let j = 1; j <= obj.max; j++) {
+                if (Math.random() > Math.pow(chance, j)) break;
+                count++;
+            }
+            
+            if (count) {
+                for (let j = 0; j < this.countSlots; j++) {
+                    if (!this.slots[j]) {
+                        this.slots[j] = eval('new ' + clas + '(' + JSON.stringify(obj) + ', ' + count + ');');
+                        return;
+                    }
+                }
+            }
+        }
     }
 
-    // уменьшаем время восстановления удара
-    if (this.currReductionTime > 0) {
-      this.currReductionTime -= dt;
-    } else if (this.currReductionTime < 0) {
-      this.currReductionTime = 0;
-    }
+    update() {
+        if (this.HP <= 0) this.die();
 
-    // середины игрока и врага (данного)
-    let midPlayer = [player.pos[0] + player.size[0] / 2, player.pos[1] + player.size[1] / 2];
-    let midEnemy = [this.pos[0] + player.globalTranslation[0] + this.size[0] / 2,
-                    this.pos[1] + player.globalTranslation[1] + this.size[1] / 2];
+        // ограничение сокрости по диагонали
+        if (this.translation.x && this.translation.y) {
+            let speed = Math.sqrt(Math.pow(this.translation.x || this.translation.y, 2) / 2);
+            this.translation.x = speed * ((this.translation.x / (Math.abs(this.translation.x))) || 0);
+            this.translation.y = speed * ((this.translation.y / (Math.abs(this.translation.y))) || 0);
+        }
 
-    // координаты врага относительно игрока
-    let vectorToPlayer = [midPlayer[0] - midEnemy[0], midPlayer[1] - midEnemy[1]];
+        this.pos.x += this.translation.x;
+        this.pos.y += this.translation.y;
 
-    let distance = Math.sqrt(Math.pow(vectorToPlayer[0], 2) + Math.pow(vectorToPlayer[1], 2));
-    // если расстнояние между игроком и врагом меньше заданного
-    if (distance < 200) {
-      // если расстояние меньше "расстояния удара"
-      if (distance < 50) {
         this.stay = true;
 
-        if (this.currReductionTime == 0) {
-          // бьем игрока
-          player.hit(this.hitHP);
-
-          // чтобы шкала не уходила в минус
-          if (player.HP < 0) {
-            player.HP = 0;
-          }
-
-          // устанавливаем время восстановления игрока
-          this.currReductionTime = this.reductionHitTime;
+        // анимация
+        if (this.translation.y > 0) {
+            this.currAnim = 'down';
+            this.stay = false;
+        } else if (this.translation.y < 0) {
+            this.currAnim = 'up';
+            this.stay = false;
         }
-      } else {
-        // направляем врага к игроку
-        this.translation[0] += (vectorToPlayer[0] / Math.abs(vectorToPlayer[0])) * dt * this.speed / 1000;
-        this.translation[1] += (vectorToPlayer[1] / Math.abs(vectorToPlayer[1])) * dt * this.speed / 1000;
-      }
+
+        if (this.translation.x > 0) {
+            this.currAnim = 'down';
+            this.stay = false;
+        } else if (this.translation.x < 0) {
+            this.currAnim = 'down';
+            this.stay = false;
+        }
+        
+        this.translation = { x: 0, y: 0 };
+
+        let vector = { x: null, y: null };
+        let distance = distanceWithPlayer({ x: this.pos.x + globalTranslation.x, y: this.pos.y + globalTranslation.y }, this.size, vector);
+
+        if (distance <= this.distance) {
+            if ((distance <= this.distance / 3) && collidesWithPlayer({ x: this.pos.x + globalTranslation.x, y: this.pos.y + globalTranslation.y }, this.size)) {
+                if (!this.hiting) {
+                    player.hit(this.hitHP);
+    
+                    setTimeout(() => {
+                        this.hiting = false;
+                    }, this.timeoutHit);
+        
+                    this.hiting = true;
+                }
+            } else {
+                // идем к игроку
+                this.translation.x += (vector.x / Math.abs(vector.x)) * dt * this.speed;
+                this.translation.y += (vector.y / Math.abs(vector.y)) * dt * this.speed;
+            }
+        }
     }
 
-    this.pos[0] += this.translation[0];// сдвигаем врага
-    this.pos[1] += this.translation[1];
+    hit(k) {
+        this.HP -= k;
 
-    // анимации, тут все понятно
-    if (this.translation[1] > 0) {
-      this.currentAnim = "down";
-    } else if (this.translation[1] < 0) {
-      this.currentAnim = "up";
-    }
-    this.stay = false;
-
-    if (this.translation[0] == 0 && this.translation[1] == 0) {
-      this.stay = true;
-      this.currentAnim = "down"
+        if (this.HP < 0) {
+            this.HP = 0;
+        }
     }
 
-    this._index += dt * this.animations[this.currentAnim].speed;// считаем кадр
-    this.frame = this.animations[this.currentAnim].frames[Math.floor(this._index) % this.animations[this.currentAnim].frames.length];
+    die() {
+        for (let i = 1; i <= 4; i++) {
+            if (this === enemies[i]) {
+                setTimeout(() => {
+                    generateEnemy(i, this.level);
+                }, 5000);
 
-    this.translation = [0, 0];// обнуляем сдвиг
-  }
+                enemies[i] = null;
 
-  render(ctx, player) {
-    let x = this.animations[this.currentAnim].pos[0];
-
-    if (!this.stay) {
-      x += this.frame * this.animations[this.currentAnim].size[0];
-    } else {
-      x = 1 * this.animations[this.currentAnim].size[0];
+                this.giveItems();
+            }
+        }
     }
 
-    ctx.drawImage(resources.get(this.spriteUrl),
-      x,
-      this.animations[this.currentAnim].pos[1],
-      this.animations[this.currentAnim].size[0],
-      this.animations[this.currentAnim].size[1],
-      this.pos[0] + player.globalTranslation[0],
-      this.pos[1] + player.globalTranslation[1],
-      this.size[0], this.size[1]
-    );
-  }
+    giveItems() {
+        for (let i = 0; i < this.countSlots; i++) {
+            if (!this.slots[i]) continue;
 
-  hit(k) {
-    this.HP -= k;
-  }
+            let pos = {
+                x: ((Math.random() > 0.5) ? 1 : -1) * (Math.random() * 10 * scaleAll),
+                y: ((Math.random() > 0.5) ? 1 : -1) * (Math.random() * 10 * scaleAll)
+            };
+            
+            this.slots[i].pos = { x: this.pos.x + pos.x, y: this.pos.y + pos.y };
+            objs.push(this.slots[i]);
+        }
+    }
 }

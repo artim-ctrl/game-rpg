@@ -1,89 +1,97 @@
-class Player {
-  constructor(spriteUrl, pos, anims, speed, translation, size, maxHP, countSlots, stay = false) {
-    this.spriteUrl = spriteUrl;// ссылка на спрайт
-    this.animations = anims;// массив с анимациями
-    this.pos = pos;// позиция на холсте
-    this.speed = speed;// скорость передвижения
-    this.translation = translation;// сдвиг на след кадре
-    this.stay = stay;// флаг (перс стоит на месте или нет)
-    this.size = size;// размер перса на холсте
-    this._index = 0;// для вычисления кадра
-    this.frame = 0;// текущий кадр
-    this.currentAnim= "down";// текущая анимация
-    this.HP = maxHP;// здоровье при создании перса = максимальному
-    this.maxHP = maxHP;//максимальное здоровье перса
-    this.countSlots = countSlots;// максимальное количество слотов собственного инвентаря игрока
-    this.slots = [];// конкретно слоты занятые чем-либо
-    this.currentWeapon = undefined;// выбранное оружие
-    this.timeWeaponReduction = 0;// задержка удара оружием
-  }
+class Player extends GameObject {
+    constructor(params) {
+        super(params);
 
-  update(dt) {
-    this.pos[0] += this.translation[0];// сдвигаем игрока
-    this.pos[1] += this.translation[1];
+        // переменная сдвига на следующем кадре
+        this.translation = { x: 0, y: 0 };
+        this.speed = params.speed;
 
-    this._index += dt * this.animations[this.currentAnim].speed;// считаем кадр
-    this.frame = this.animations[this.currentAnim].frames[Math.floor(this._index) % this.animations[this.currentAnim].frames.length];
+        // запоминает globalTranslation прошлого кадра, сравнивает с текущим и если не равны позволяет анимации проигрываться
+        this.lastgt = { x: 0, y: 0 };
+        this.lastpos = { x: 0, y: 0 };
 
-    this.translation = [0, 0];// обнуляем сдвиг
-  }
+        // здоровье
+        this.maxHP = params.maxHP;
+        this.HP = this.maxHP;
 
-  render(ctx) {// отрисовка перса
-    let x = this.animations[this.currentAnim].pos[0];
+        // оружие
+        this.weapon = null;
 
-    if (!this.stay) {
-      x += this.frame * this.animations[this.currentAnim].size[0];
-    } else {
-      x = 1 * this.animations[this.currentAnim].size[0];
+        // перс в роли ящика
+        this.countSlots = params.countSlots;
+        this.slots = {};
+        this.countMinSlots = params.countMinSlots;
+        this.minSlots = {};
+
+        for (let i = 0; i < this.countMinSlots; i++) {
+            this.minSlots[i] = null;
+        }
+
+        for (let i = 0; i < this.countSlots; i++) {
+            this.slots[i] = null;
+        }
+
+        this.minSlots[1] = new Food(window.getVar('food.meet_pig'), 10);
+
+        this.slots[4] = new Weapon(window.getVar('weapon.igril'), 1);
     }
 
-    ctx.drawImage(resources.get(this.spriteUrl),
-      x,
-      this.animations[this.currentAnim].pos[1],
-      this.animations[this.currentAnim].size[0],
-      this.animations[this.currentAnim].size[1],
-      this.pos[0], this.pos[1],
-      this.size[0], this.size[1]
-    );
+    update() {
+        // ограничение сокрости по диагонали
+        if ((this.lastpos.x != this.pos.x + this.translation.x + globalTranslation.x) && (this.lastpos.y != this.pos.y + this.translation.y + globalTranslation.y)) {
+            let speed = Math.sqrt(Math.pow(this.translation.x || this.translation.y, 2) / 2);
+            this.translation.x = speed * ((this.translation.x / (Math.abs(this.translation.x))) || 0);
+            this.translation.y = speed * ((this.translation.y / (Math.abs(this.translation.y))) || 0);
+        }
 
-    if (this.currentWeapon) {
-      // рисуем свою пушку
-      let indent = 18;
+        this.pos.x += this.translation.x;
+        this.pos.y += this.translation.y;
 
-      if (this.currentAnim == "right" || this.currentAnim == "down") {
-        ctx.drawImage(resources.get(this.currentWeapon.spriteURL),
-                      this.currentWeapon.pos[0], this.currentWeapon.pos[1],
-                      this.currentWeapon.size[0], this.currentWeapon.size[1],
-                      this.pos[0] + this.size[0],
-                      this.pos[1] + this.size[1] / 2 - this.currentWeapon.size[1] / 2,
-                      this.currentWeapon.size[0] * this.scaleAll, this.currentWeapon.size[1] * this.scaleAll);
-      } else {
-        ctx.setTransform(-1, 0, 0, 1, 0, 0);
-        ctx.drawImage(resources.get(this.currentWeapon.spriteURL),
-                      this.currentWeapon.pos[0], this.currentWeapon.pos[1],
-                      this.currentWeapon.size[0], this.currentWeapon.size[1],
-                      -(this.pos[0]),
-                      this.pos[1] + this.size[1] / 2 - this.currentWeapon.size[1] / 2,
-                      this.currentWeapon.size[0] * this.scaleAll, this.currentWeapon.size[1] * this.scaleAll);
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-      }
+        this.stay = true;
+
+        // анимация
+        if (this.translation.y > 0 || this.lastgt.y > globalTranslation.y) {
+            this.currAnim = 'down';
+            this.stay = false;
+        } else if (this.translation.y < 0 || this.lastgt.y < globalTranslation.y) {
+            this.currAnim = 'up';
+            this.stay = false;
+        }
+
+        if (this.translation.x > 0 || this.lastgt.x > globalTranslation.x) {
+            this.currAnim = 'right';
+            this.stay = false;
+        } else if (this.translation.x < 0 || this.lastgt.x < globalTranslation.x) {
+            this.currAnim = 'left';
+            this.stay = false;
+        }
+        
+        this.translation = { x: 0, y: 0 };
+
+        this.lastgt = { x: globalTranslation.x, y: globalTranslation.y };
+        this.lastpos = { x: this.pos.x + globalTranslation.x, y: this.pos.y + globalTranslation.y };
     }
-  }
 
-  setItem(item, count) {
-    let slot = {
-      count: count,
-      item: item
+    addHP(k) {
+        player.HP += k;
+
+        if (player.HP > player.maxHP) {
+            player.HP = player.maxHP;
+        }
     }
-    this.slots.push(slot);
-  }
 
-  hit(hp) {
-    this.HP -= hp;
-  }
+    hit(k) {
+        this.HP -= k;
 
-  addHP(k) {// прибавляем HP
-    this.HP += k;
-    this.HP = this.HP > this.maxHP ? this.maxHP : this.HP;
-  }
+        if (this.HP < 0) {
+            this.HP = 0;
+        }
+    }
+
+    setWeapon(weapon) {
+        this.weapon = weapon;
+
+        this.weapon.pos.x = this.size.x / 2;
+        this.weapon.pos.y = this.size.y / 2 - this.weapon.size.y / 2;
+    }
 }

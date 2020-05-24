@@ -1,418 +1,245 @@
 "use strict";
 
-(function() {
-  // переменные
-  const mapArray = [// карта
-        '###############',
-        '#1111111111111#',
-        '#1...........1#',
-        '#1..~00000~..1#',
-        '#1..~00000~..1#',
-        '#1...........1#',
-        '#1111111111111#',
-        '###############'
-      ],
-      sizeBlock = 64,// размер блока текстуры
-      blockFactor = {
-        '1': 0,// деревья
-        '#': 1,// холмы
-        '~': 2,// кусты
-        '.': 3,// трава
-        '0': 4// каменная дорожка
-      },
-      collisionBlocks = ['#', '1'];// обьекты с которыми перс сталкиваетсяи непроходит сквозь
+let usingFood = false;// флаг, true если игрок сьел пищу и сейчас тикает таймер
 
-  let box = [];// хранилища на карте
+let enemies = {
+    1: null,
+    2: null,
+    3: null,
+    4: null
+};
 
-  let lastCurrBox = null;
+let win = false;
 
-  let enemy = [];// враги на карте
+let objs = [];
 
-  let beginPos = [0, 0],// начало карты, зависит от массива (в init)
-      endPos = [0, 0];// конец карты
-
-  let indentMap = 250;
-
-  let player;// наш перс
-
-  let lastTime,// для вычисления отрезка времени от прошлого кадра до нынешнего
-      dt = 0;
-
-  let timeOpenInventory = 0;// ограничение по ремени открытия/закрытия инвентаря (для нормальной регистрации нажатия)
-
-  let scaleAll = 3;// масштаб всего (еще поменять в variables)
-  let playerSpeed = 100 * scaleAll;// скорость передвижения персонажа
-
-  let $ = (e) => { return document.querySelector(e); };// для удобства
-
-  window.map.sizeBlock = sizeBlock * scaleAll;
-
-  let cnv = $('#canvas');// холст тащим с DOM
-  let ctx = cnv.getContext('2d');
-  cnv.width = window.innerWidth;
-  cnv.height = window.innerHeight;
-
-  //prepare
-  resources.load(["source/player.png",// грузим ресуррсы
-                  "source/terrain.png",
-                  "source/box.png",
-                  "source/food.png",
-                  "source/weapon.png",
-                  "source/enemy.png"]);
-
-  resources.onReady(() => {// после окончания загрузки создаем перса и заполняем карту
-    player = new Player("source/player.png", [cnv.width / 2, cnv.height / 2], {
-      down: {
-        pos: [0, 0],
-        speed: .01,
-        size: [26, 36],
-        frames: [0, 1, 2]
-      },
-      right: {
-        pos: [0, 72],
-        speed: .01,
-        size: [26, 36],
-        frames: [0, 1, 2]
-      },
-      left: {
-        pos: [0, 36],
-        speed: .01,
-        size: [26, 36],
-        frames: [0, 1, 2]
-      },
-      up: {
-        pos: [0, 108],
-        speed: .01,
-        size: [26, 36],
-        frames: [0, 1, 2]
-      }
-    }, playerSpeed, [0, 0], [26 * scaleAll, 36 * scaleAll], 100, 5);
-
-    player.scaleAll = scaleAll;
-
-    init();
-  });
-
-  function init() {// инициализация, выполняется один разза всю игру
-    lastTime = Date.now();
-
-    let middle = [cnv.width / 2, cnv.height / 2];//высчитывается начальная позиция для отрисовки карты и определения ее границ
-    // beginPos = [middle[0] - mapArray[0].length * sizeBlock * scaleAll / 2, middle[1] - mapArray.length * sizeBlock * scaleAll / 2];
-    beginPos = [0, 0];
-    // позиция конца карты
-    endPos = [beginPos[0] + mapArray[0].length * sizeBlock * scaleAll, beginPos[1] + mapArray.length * sizeBlock * scaleAll];
-
-    player.globalTranslation = [-(cnv.width / 2), -(cnv.height / 2)];// Отрицательное = вверх, влево
-
-    map.setMap("source/terrain.png", mapArray, sizeBlock, scaleAll, blockFactor, beginPos);
-
-    box.push( new Box (
-      ...boxes.default_7
-    ));// добавление box-а
-
-    enemy.push( new Enemy(
-      ...enemyies.bob
-    ));
-
-    enemy.push( new Enemy(
-      ...enemyies.bob
-    ));
-
-    enemy[0].setItem(new Food (// закинем один item в box
-      ...foods.meatPork
-    ), 7);
-
-    enemy[1].setItem(new Weapon (// закинем один item в box
-      ...weapons.igril
-    ), 1);
-
-    enemy[1].setItem(new Food (// закинем один item в box
-      ...foods.meatPork
-    ), 3);
-
-    box[0].setItem(new Food (// закинем один item в box
-      ...foods.meatPork
-    ), 2);
-
-    box[0].setItem(new Weapon (// закинем один item в box
-      ...weapons.notSuper
-    ), 1);
-
-    player.setItem(new Food (// закинем один item в box
-      ...foods.meatPork
-    ), 9);
-
-    main();
-  }
-
-  function main() {// основная event loop
-    // если проиграли
-    if (player.HP <= 0) {
-      death();
-      return;
-    }
-
+function main() {
     dt = (Date.now() - lastTime) || 1;// чтоб ыне было бага если время кадра слишком низкое (равно 0)
 
-    ctx.clearRect(0, 0, cnv.width, cnv.height);
+    if (player.HP <= 0) {
+        die();
+        return;
+    }
 
-    handleInput();
+    if (win) {
+        winning();
+        return;
+    }
 
-    update(dt);// просчет следующего кадра
-    render(ctx);// отрисовка следующего кадра
+    handleInput();// ввод с клавиатуры или мыши
+
+    update();// просчет следующего кадра
+    render();// отрисовка следующего кадра
 
     lastTime = Date.now();
-    timeOpenInventory += dt;
 
     requestAnimationFrame(main);
-  }
+}
 
-  function death() {
-    // рисуем меню проигрыша игроку
-    ctx.strokeStyle = "#C0C0C0";
-    ctx.fillStyle = "#434343";
-    ctx.strokeRect(cnv.width / 3, cnv.height / 3, cnv.width / 3, cnv.height / 3);
-    ctx.fillRect(cnv.width / 3, cnv.height / 3, cnv.width / 3, cnv.height / 3);
+function handleInput() {
+    if (input.isPressed('s') || input.isPressed('down')) {
+        player.translation.y += dt * player.speed;
 
-    // говорим, что он проиграл :)
-    let fontS = 50;
-    let indentBetweenLines = 10;
-    let indentTopAndLeft = 30;
-    ctx.font = `${fontS}px serif`;
-    ctx.fillStyle = "#C0C0C0";
-    ctx.fillText("Вы проиграли, ", cnv.width / 3 + indentTopAndLeft, cnv.height / 3 + fontS / 2 + indentTopAndLeft);
-    ctx.fillText("перезагрузите страницу!", cnv.width / 3 + indentTopAndLeft, cnv.height / 3 + fontS / 2 + indentBetweenLines + fontS + indentTopAndLeft);
-  }
-
-  function handleInput() {
-    player.stay = true;// говорим обьекту стоять, если дальше сработают кнопки, то стоять не будем
-
-    if (isPressed('UP') || isPressed('w')) {
-      player.translation[1] = -dt * player.speed / 1000;//куда перемещается наш перс
-      player.currentAnim = "up";// анимация
-      player.stay = false;
-
-      if (player.globalTranslation[1] != 0 && (player.pos[1] + player.translation[1]) < indentMap) {
-        player.globalTranslation[1] -= player.translation[1];
-        player.translation[1] = 0;
-      }
-
-      if (player.globalTranslation[1] > 0) {
-        player.globalTranslation[1] = 0;
-      }
-    }
-    if (isPressed('DOWN') || isPressed('s')) {
-      player.translation[1] = dt * player.speed / 1000;
-      player.currentAnim = "down";
-      player.stay = false;
-
-      if (player.globalTranslation[1] != -(endPos[1] - cnv.height) && (player.pos[1] + player.translation[1] + player.size[1]) > cnv.height - indentMap) {
-        player.globalTranslation[1] -= player.translation[1];
-        player.translation[1] = 0;
-      }
-
-      if (-player.globalTranslation[1] > endPos[1] - cnv.height) {
-        player.globalTranslation[1] = -(endPos[1] - cnv.height);
-      }
-    }
-    if (isPressed('LEFT') || isPressed('a')) {
-      player.translation[0] = -dt * player.speed / 1000;
-      player.currentAnim = "left";
-      player.stay = false;
-
-      if (player.globalTranslation[0] != 0 && (player.pos[0] + player.translation[0]) < indentMap) {
-        player.globalTranslation[0] -= player.translation[0];
-        player.translation[0] = 0;
-      }
-
-      if (player.globalTranslation[0] > 0) {
-        player.globalTranslation[0] = 0;
-      }
-    }
-    if (isPressed('RIGHT') || isPressed('d')) {
-      player.translation[0] = dt * player.speed / 1000;
-      player.currentAnim = "right";
-      player.stay = false;
-
-      if (player.globalTranslation[0] != -(endPos[0] - cnv.width) && (player.pos[0] + player.translation[0] + player.size[0]) > cnv.width - indentMap) {
-        player.globalTranslation[0] -= player.translation[0];
-        player.translation[0] = 0;
-      }
-
-      if (-player.globalTranslation[0] > endPos[0] - cnv.width) {
-        player.globalTranslation[0] = -(endPos[0] - cnv.width);
-      }
-    }
-
-    // проверяем на нажатие
-    for (let i = 0; i < player.countSlots; i++) {
-      if (isPressed(`${i + 1}`)) {// если нажат кнопка 1 - количество слотов перса
-        if (player.slots[i]) {// если слот не пуст
-          if (player.slots[i].item instanceof Food) {// если в этом слоте - еда, то "едим" ее
-            if (player.slots[i].item.remainingTimeReduction == 0 && player.HP < player.maxHP) {
-              player.slots[i].item.use(player);// прибавляем HP
-              player.slots[i].count--;// уменьшаем количество
-
-              if (player.slots[i].count == 0) {// если количество == 0 - удаляем
-                player.slots[i] = undefined;
-              }
-            }
-          } else if (player.slots[i].item instanceof Weapon) {// если в слоте оружие
-            if (!player.currentWeapon) {
-              player.currentWeapon = player.slots[i].item;
-              player.slots.splice(i, 1);
-            } else {
-              let tempSlot = player.slots[i].item;
-              player.slots[i].item = player.currentWeapon;
-              player.currentWeapon = tempSlot;
-            }
-          }
+        if (globalTranslation.y != -(endPos.y - window.innerHeight) && (player.pos.y + player.translation.y + player.size.y) > window.innerHeight - indentMap) {
+            globalTranslation.y -= player.translation.y;
+            player.translation.y = 0;
         }
-      }
-    }
 
-    if (isPressed('i') && timeOpenInventory > 300) {// если нажали - открываем инвентарь
-      hood.showOrNotInventory();
-      timeOpenInventory = 0;
-    }
-
-    if (isPressed('mouse')) {
-      enemy.forEach((e) => {
-        // середины игрока и врага (данного)
-        let midPlayer = [player.pos[0] + player.size[0] / 2, player.pos[1] + player.size[1] / 2];
-        let midEnemy = [e.pos[0] + player.globalTranslation[0] + e.size[0] / 2,
-                        e.pos[1] + player.globalTranslation[1] + e.size[1] / 2];
-
-        // координаты врага относительно игрока
-        let vectorToPlayer = [midPlayer[0] - midEnemy[0], midPlayer[1] - midEnemy[1]];
-
-        let distance = Math.sqrt(Math.pow(vectorToPlayer[0], 2) + Math.pow(vectorToPlayer[1], 2));
-
-        if(distance < 120 && player.timeWeaponReduction == 0) {
-          // !!! если в руках нет оружия, то перс бьет с силой в 5 и восстановлением 2 секунды
-          if (player.currentWeapon) {
-            e.hit(player.currentWeapon.damage);
-            player.timeWeaponReduction = player.currentWeapon.timeReduction;
-          } else {
-            e.hit(5);
-            player.timeWeaponReduction = 2000;
-          }
+        if (-globalTranslation.y > endPos.y - window.innerHeight) {
+            globalTranslation.y = -(endPos.y - window.innerHeight);
         }
-      });
+
+        hood.showPlayerInventoryParam(false);
     }
+    
+    if (input.isPressed('w') || input.isPressed('up')) {
+        player.translation.y -= dt * player.speed;
+
+        if (globalTranslation.y != 0 && (player.pos.y + player.translation.y) < indentMap) {
+            globalTranslation.y -= player.translation.y;
+            player.translation.y = 0;
+        }
+
+        if (globalTranslation.y > 0) {
+            globalTranslation.y = 0;
+        }
+
+        hood.showPlayerInventoryParam(false);
+    }
+    
+    if (input.isPressed('a') || input.isPressed('left')) {
+        player.translation.x -= dt * player.speed;
+
+        if (globalTranslation.x != 0 && (player.pos.x + player.translation.x) < indentMap) {
+            globalTranslation.x -= player.translation.x;
+            player.translation.x = 0;
+        }
+
+        if (globalTranslation.x > 0) {
+            globalTranslation.x = 0;
+        }
+
+        hood.showPlayerInventoryParam(false);
+    }
+    
+    if (input.isPressed('d') || input.isPressed('right')) {
+        player.translation.x += dt * player.speed;
+
+        if (globalTranslation.x != -(endPos.x - window.innerWidth) && (player.pos.x + player.translation.x + player.size.x) > window.innerWidth - indentMap) {
+            globalTranslation.x -= player.translation.x;
+            player.translation.x = 0;
+        }
+
+        if (-globalTranslation.x > endPos.x - window.innerWidth) {
+            globalTranslation.x = -(endPos.x - window.innerWidth);
+        }
+
+        hood.showPlayerInventoryParam(false);
+    }
+
+    // ограничение сокрости по диагонали
+    // if (player.translation.x && player.translation.y) {
+    //     let speed = Math.sqrt(Math.pow(player.translation.x, 2) / 2);
+    //     player.translation.x = speed * (player.translation.x / (Math.abs(player.translation.x)));
+    //     player.translation.y = speed * (player.translation.y / (Math.abs(player.translation.y)));
+    // }
 
     checkCollisions();
-  }
+}
 
-  function checkCollisions() {
-    checkCollisionsWithEnds();// коллизии с границами карты
-    checkCollisionsWithBox();// коллизии с box-ами
-  }
+function die() {
+    hood.renderDeath();
+}
 
-  function checkCollisionsWithEnds() {// прописать изменение GlobalTranslation
-    if (player.pos[0] + player.translation[0] <= beginPos[0]) {// левый конец карты
-      player.pos[0] = beginPos[0];
-      player.translation[0] = 0;
-    } else if (player.pos[0] + player.translation[0] + player.size[0] >= cnv.width) {
-      player.pos[0] = cnv.width - player.size[0];
-      player.translation[0] = 0;
+function winning() {
+    hood.renderWin();
+}
+
+function update() {
+    player.update();
+
+    // апдейтим врагов
+    for (let i = 1; i <= 4; i++) {
+        if (enemies[i] instanceof Enemy) enemies[i].update();
     }
-    if (player.pos[1] + player.translation[1] <= beginPos[1]) {// верхний конец карты
-      player.pos[1] = beginPos[1];
-      player.translation[1] = 0;
-    } else if (player.pos[1] + player.translation[1] + player.size[1] >= cnv.height) {
-      player.pos[1] = cnv.height - player.size[1];
-      player.translation[1] = 0;
-    }
-  }
+}
 
-  function checkCollisionsWithBox() {
-    for (let i = 0; i < box.length; i++) {
-      if (boxCollides(player.pos, player.size, [box[i].pos[0] + player.globalTranslation[0], box[i].pos[1] + player.globalTranslation[1]], box[i].size)) {
-        if (lastCurrBox != null) {// если на прошлом кадре мы касались бокса
-          if (box[i] != lastCurrBox) {// уже другой box и мы его касаемся
-            lastCurrBox = box[i]
-            hood.setBox(true, box[i]);// говорим, что касаемся box-а и передаем ссылку на box, которого касаемся
-          }
-        } else {// если до этого момента, box-а мы не касались
-          lastCurrBox = box[i]
-          hood.setBox(true, box[i]);// говорим, что касаемся box-а и передаем ссылку на box, которого касаемся
-          hood.setShowHintInventory(true);// Показываем подсказку
-        }
-        return;
-      }
-    }
+function render() {
+    map.render();// рисуем карту
 
-    // обнуляем текущий бокс
-    hood.setShowHintInventory(false);
-    hood.setBox();
-    hood.showOrNotInventory(false);// убираем меню инвентаря если выходим за пределы box-а
-    lastCurrBox = null;
-  }
-
-  function collides(x, y, r, b, x2, y2, r2, b2) {// проверяем столкновение обьекта с позицией pos и размерами size с обьектом2 с позицией pos2 и размерами size2
-    return !(r <= x2 || x > r2 ||
-            b <= y2 || y > b2);
-  }
-
-  function boxCollides(pos, size, pos2, size2) {
-    return collides(pos[0], pos[1],
-                    pos[0] + size[0], pos[1] + size[1],
-                    pos2[0], pos2[1],
-                    pos2[0] + size2[0], pos2[1] + size2[1]);
-  }
-
-  function update(dt) {
-    player.update(dt);// просчет персонажа (анимации и движения)
-
-    enemy.forEach((e) => {
-      e.update(dt, player, enemy, box);
+    objs.forEach(obj => {
+        obj.renderStat();
     });
 
-    updateReduction(dt);
-  }
+    player.render();// рисуем перса
 
-  function updateReduction(dt) {// обновляем все восстановления (item-ов) у перса
-    for (let i = 0; i < player.countSlots; i++) {// перебираем их
-      if (player.slots[i]) {// если слот не пуст
-        if (player.slots[i].item.remainingTimeReduction != undefined) {// если эта перемнная существует
-          if (player.slots[i].item.remainingTimeReduction != 0) {// если не равна нулю
-            player.slots[i].item.remainingTimeReduction -= dt;// отнимаем пройденное время
+    if (player.weapon) player.weapon.render();
 
-            if (player.slots[i].item.remainingTimeReduction < 0) {// должна быть не меньше нуля
-              player.slots[i].item.remainingTimeReduction = 0;
+    // рисуем врагов
+    for (let i = 1; i <= 4; i++) {
+        if (enemies[i] instanceof Enemy) enemies[i].render(true);
+    }
+
+    hood.render();// рисуем худ
+}
+
+function checkCollisions() {
+    checkCollisionsWithEnds();
+}
+
+function checkCollisionsWithEnds() {
+    if (player.pos.x + player.translation.x <= 0) {// левый конец карты
+        player.pos.x = 0;
+        player.translation.x = 0;
+    } else if (player.pos.x + player.translation.x + player.size.x >= window.innerWidth) {
+        player.pos.x = window.innerWidth - player.size.x;
+        player.translation.x = 0;
+    }
+    if (player.pos.y + player.translation.y <= 0) {// верхний конец карты
+        player.pos.y = 0;
+        player.translation.y = 0;
+    } else if (player.pos.y + player.translation.y + player.size.y >= window.innerHeight) {
+        player.pos.y = window.innerHeight - player.size.y;
+        player.translation.y = 0;
+    }
+}
+
+function generateEnemies() {
+    enemies[1] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[1].pos = { x: startEnemyPos[1].x, y: startEnemyPos[1].y };
+
+    enemies[2] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[2].pos = { x: startEnemyPos[2].x - enemies[2].size.x, y: startEnemyPos[2].y };
+
+    enemies[3] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[3].pos = { x: startEnemyPos[3].x, y: startEnemyPos[3].y - enemies[3].size.y };
+
+    enemies[4] = new Enemy(window.getVar('enemy.level_1'));
+    enemies[4].pos = { x: startEnemyPos[4].x - enemies[4].size.x, y: startEnemyPos[4].y - enemies[4].size.y };
+}
+
+function takeItem() {
+    for (let i = 0; i < objs.length; i++) {
+        let obj = objs[i];
+
+        if (!collidesWithPlayer({ x: obj.pos.x + globalTranslation.x, y: obj.pos.y + globalTranslation.y }, { x: 13 * scaleAll, y: 13 * scaleAll })) continue;
+
+        for (let j = 0; j < player.countSlots; j++) {
+            if (player.slots[j]) {
+                if (player.slots[j].id == obj.id) {
+                    if (player.slots[j].max >= player.slots[j].count + obj.count) {
+                        player.slots[j].count += obj.count;
+                        objs.splice(i, 1);
+                        hood.setPlayerInventory(hood.invIsActive());
+                        return;
+                    } else {
+                        let count = obj.count + player.slots[j].count - player.slots[j].max;
+                        obj.count = count;
+                        player.slots[j].count = player.slots[j].max;
+                        hood.setPlayerInventory(hood.invIsActive());
+                    }
+                }
+            } else {
+                player.slots[j] = obj;
+                objs.splice(i, 1);
+                hood.setPlayerInventory(hood.invIsActive());
+                return;
             }
-          }
         }
-      }
+    }
+}
+
+function generateEnemy(i, level) {
+    if (!window.varExist('enemy.level_' + level)) {
+        enemies[i] = true;
+        checkWin();
+        return;
     }
 
-    if (player.timeWeaponReduction != 0) {// восстановление задержки удара
-      player.timeWeaponReduction -= dt;
+    enemies[i] = new Enemy(window.getVar('enemy.level_' + level));
+                    
+    enemies[i].pos = { x: startEnemyPos[i].x, y: startEnemyPos[i].y };
 
-      if (player.timeWeaponReduction < 0) {
-        player.timeWeaponReduction = 0;
-      }
+    switch(i) {
+        case 2:
+            enemies[i].pos.x -= enemies[i].size.x;
+            break;
+        case 3:
+            enemies[i].pos.y -= enemies[i].size.y;
+            break;
+        case 3:
+            enemies[i].pos.x -= enemies[i].size.x;
+            enemies[i].pos.y -= enemies[i].size.y;
+            break;
     }
-  }
+}
 
-  function render(ctx) {
-    map.render(ctx, player);// отрисовка карты
-
-    renderBoxes(ctx, player);// отрисовка box-ов
-
-    enemy.forEach((e) => {
-      e.render(ctx, player);
-    });
-
-    player.render(ctx);// отрисовка персонажа
-
-    hood.render(ctx, player, cnv, enemy);// отрисовка графического интерфейса
-  }
-
-  function renderBoxes(ctx, player) {
-    box.forEach((e) => {
-      e.render(ctx, beginPos, player);
-    });
-  }
-})();
+function checkWin() {
+    for (let i = 1; i <= 4; i++) {
+        if (enemies[i] !== true) {
+            win = false;
+            return;
+        }
+    }
+    win = true;
+}

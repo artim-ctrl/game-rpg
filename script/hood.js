@@ -1,379 +1,710 @@
-"use strict";
+(function () {
+    let playerInventory = null,
+        minPlayerInventory = null;
 
-(function() {
-  let showInventory = false,// флаг (показываем инвентарь перса)
-      besideBox = false,// флаг (показываем хранилище-box)
-      currentBox,//коробка которой касаемся сейчас
-      sizeBetweenSlots = 15,// расстояние между слотами
-      sizeSlot = 64,// размер слота
-      indentInSlot = 2,// отступ по краям внетри слота
-      showHintInventory = false,// флаг, показываем подсказку или нет
-      selectedSlot = null,// выбранный на данный момент слот хранилища
-      selectedSlotInPlayerInventory = null;// выбранный на данный момент слот в инвентаре игрока
+    let sizeInventoryBlock = 38,
+        indentBetweenItem = 5;
 
-  function render(ctx, player, cnv, enemy) {
-    renderEnemyHealth(ctx, player, enemy);// отрисовка HP врагов
+    let dragingSlot = null;
 
-    renderHealth(ctx, player, cnv);
+    let firstSlot = {
+            inventory: null,
+            id: null
+        },
+        secondSlot = {
+            inventory: null,
+            id: null
+        };
 
-    // отрисовка  инвентаря
-    if (showInventory) {// если нажата 'i'
-      if (besideBox) {// если показываем хранилище-box (если находимся рядом с таковым)
-        renderBoxSlots(ctx, cnv, player);
-      }
-    } else {
-      setNullMouseCoordinates();
-      selectedSlot = null;
-      selectedSlotInPlayerInventory = null;
+    let activeInvItem = null;
+
+    function render() {
+        renderEnemyHealth();
+        renderHealth();
+        renderPlayerInventory();
+
+        if (dragingSlot) renderDragingSlot();
     }
-    renderInventory(ctx, player, cnv);
 
-    if (showHintInventory) {// Если нужно показать подсказку - показываем
-      renderHintInventory(ctx, cnv);// Рисуем подсказку
+    function renderPlayerInventory() {
+        if (!minPlayerInventory) setMinPlayerInventory();
+        if (!playerInventory) setPlayerInventory();
+
+        renderMenu(playerMinInventory);
+        if (playerInventory.active) renderMenu(playerInventory);
+
+        if (activeInvItem && playerInventory.active) renderActiveItem();
     }
-  }
 
-  function renderHintInventory(ctx, cnv) {
-    let indent = 15;// Отступ от краев экрана
+    function renderHealth() {
+        let indent = 3;
+        let sizex = 150 * window.innerWidth / 1000 * scaleAll;
 
-    let size = [300, 200];
-    let pos = [cnv.width - indent - size[0], indent];
-
-    let fontS = 30;
-
-    ctx.strokeStyle = "#C0C0C0";
-    ctx.fillStyle = "#434343";
-    ctx.strokeRect(pos[0], pos[1], size[0], size[1]);
-    ctx.fillRect(pos[0], pos[1], size[0], size[1]);
-
-    ctx.font = `${fontS}px serif`;
-    ctx.fillStyle = "#FFFAFA";
-    ctx.fillText("Жмите 'i', чтобы", pos[0] + indent, pos[1] + indent + fontS);
-    ctx.fillText("открыть/закрыть", pos[0] + indent, pos[1] + (indent + fontS) * 2);
-    ctx.fillText("сундук/карман врага", pos[0] + indent, pos[1] + (indent + fontS) * 3);
-  }
-
-  function setShowHintInventory(b) {
-    showHintInventory = b;
-  }
-
-  function getShowInventory() {
-    return showInventory;
-  }
-
-  function showOrNotInventory(b) {
-    if (b === false) {
-      showInventory = false;
-    } else {
-      showInventory = !showInventory;
-    }
-  }
-
-  function setBox(besBox = null, box = null) {
-    besideBox = besBox;
-    currentBox = box;
-  }
-
-  function renderHealth(ctx, player, cnv) {// переопределяемый метод, отрисовывает линию здоровья
-    let x = 5,// позиция внешней  формы
-        y = 5,
-        sx = 410,// размеры внешней формы
-        sy = 46;
-
-    ctx.strokeStyle = "#C0C0C0";// рисуем форму
-    ctx.fillStyle = "#434343";
-    ctx.strokeRect(x, y, sx, sy);
-    ctx.fillRect(x, y, sx, sy);
-
-    let indent = 7;
-
-    x = x + indent;// позиция шкалы
-    y = y + indent;
-    sx = sx - indent * 2;// размеры шкалы
-    sy = sy - indent * 2;
-
-    ctx.fillStyle = "#ff0800";// рисуем шкалу HP
-    ctx.strokeStyle = "#C0C0C0";
-    ctx.strokeRect(x, y, sx, sy);
-    ctx.fillRect(x, y, sx / player.maxHP * player.HP, sy);
-
-    let fontS = 20;
-
-    ctx.font = `${fontS}px serif`;// рисуем текст (количество HP)
-    ctx.fillStyle = "#E2A300";
-    ctx.fillText(`${player.HP} / ${player.maxHP}`, x + indent, y + sy - (sy - fontS) / 2);
-  }
-
-  function renderBoxSlots(ctx, cnv, player) {// отрисовываем худ (просчитываем положение слотов (3х3, 5х2))
-
-    let countSlotsOnLine = Math.ceil(Math.sqrt(currentBox.countSlots));// количество слотов на одной линии
-
-    let countLines = Math.ceil(currentBox.countSlots / countSlotsOnLine);// количество строк слотов
-
-    let sizeM = [sizeBetweenSlots * (countSlotsOnLine + 1) + countSlotsOnLine * sizeSlot,// размеры формы инвентаря
-                 sizeBetweenSlots * (countLines + 1) + sizeSlot * countLines];
-
-    let posM = [(cnv.width - sizeM[0]) / 2, (cnv.height - sizeM[1]) / 2];// позиция формы инвентаря
-
-    ctx.strokeStyle = "#C0C0C0";// рисуем форму
-    ctx.fillStyle = "#434343";
-    ctx.strokeRect(posM[0], posM[1], sizeM[0], sizeM[1]);
-    ctx.fillRect(posM[0], posM[1], sizeM[0], sizeM[1]);
-
-    if (isPressed('mouseclick') != null) {// если пользователь нажал куда-то - берем координаты и ищем а затем выделаем нужный слот
-      // считаем какой элемент выделили и обнуляем pressedKeys
-      let pos = [isPressed('mouseclick')[0] - posM[0] - sizeBetweenSlots,// это позиция относительно первого слота (слева сверху)
-                 isPressed('mouseclick')[1] - posM[1] - sizeBetweenSlots];
-
-      if (pos[0] >= 0 && pos[0] < sizeM[0] &&// если кликнули внутри этой меню
-          pos[1] >= 0 && pos[1] < sizeM[1]) {
-
-        // позиция курсора не по пикселям а по положению на слоте (на каком слоте стоит)
-        let posByPos = [Math.floor(pos[0] / (sizeSlot + sizeBetweenSlots)),
-                    Math.floor(pos[1] / (sizeSlot + sizeBetweenSlots))];
-
-        if ((pos[0] - (posByPos[0] * (sizeSlot + sizeBetweenSlots))) < sizeSlot &&// если кликнули четко на слот
-            (pos[1] - (posByPos[1] * (sizeSlot + sizeBetweenSlots))) < sizeSlot) {
-          // наш выделенный слот
-          let tempSelectedSlot = (posByPos[1]) * countSlotsOnLine + posByPos[0];
-          setNullMouseCoordinates();
-
-          if (tempSelectedSlot < currentBox.countSlots) {// если кликнули на 7 слот к примеру (в случае если в данном хранилище 8 предметов)
-            if (selectedSlotInPlayerInventory == null) {// если в инвентаре игрока ничего не выбрано, то можем выбирать в хранилище
-              //если в хранилище уже есть выбранный слот
-              if (selectedSlot != null) {
-                // если выбранный только что - пустой, то перемещаем
-                if (!currentBox.slots[tempSelectedSlot]) {
-                  currentBox.slots[tempSelectedSlot] = currentBox.slots[selectedSlot];
-                  currentBox.slots[selectedSlot] = undefined;
-                } else {// если нет, то меняем местами
-                  let tempSlot = currentBox.slots[tempSelectedSlot];
-                  currentBox.slots[tempSelectedSlot] = currentBox.slots[selectedSlot];
-                  currentBox.slots[selectedSlot] = tempSlot;
+        renderMenu({
+            type: 'menu',
+            size: { x: sizex, y: 50 },
+            pos: { x: 15, y: 15 },
+            border: 'grey',
+            align: false,
+            background: 'grey',
+            children: [
+                {
+                    type: 'menu',
+                    pos: { x: indent, y: indent },
+                    border: 'white',
+                    align: 'c',
+                    background: false,
+                    children: [
+                        {
+                            type: 'menu',
+                            pos: { x: 0, y: 0 },
+                            size: { x: (sizex - indent * 2) * player.HP / player.maxHP },
+                            border: false,
+                            align: 'y',
+                            background: 'red',
+                            children: [
+                                {
+                                    type: 'text',
+                                    text: `${player.HP} / ${player.maxHP}`,
+                                    pos: { x: 4 },
+                                    font: 25,
+                                    color: 'yellow',
+                                    align: 'y'
+                                }
+                            ]
+                        }
+                    ]
                 }
-                selectedSlot = null;
-              } else if (currentBox.slots[tempSelectedSlot]) {// если в выбранном только что слоте не пусто, то можем выбрать его
-                // если только что выделенный элемент совпадает с уже выделенным то снимаем выделение
-                selectedSlot = tempSelectedSlot == selectedSlot ? null : tempSelectedSlot;
-              }
-            } else {// иначе - в инвентаре игрока выбран слот
-              // если в выбранном только что слоте не пусто - меняем местами содержимое
-              if (currentBox.slots[tempSelectedSlot]) {
-                // проверка на совпадение видов содержимого БУДЕТ ТОЛЬКО ПРИ JSON-ФОРМАТЕ!!!
-
-                // простой обмен с помощью одной переменной
-                let tempSlot = currentBox.slots[tempSelectedSlot];
-                currentBox.slots[tempSelectedSlot] = player.slots[selectedSlotInPlayerInventory];
-                player.slots[selectedSlotInPlayerInventory] = tempSlot;
-              } else {// иначе перемещаем содержимое из слота в инвентаре игрока в только что выбранный слот
-                currentBox.slots[tempSelectedSlot] = player.slots[selectedSlotInPlayerInventory];
-                player.slots[selectedSlotInPlayerInventory] = undefined;
-              }
-              selectedSlotInPlayerInventory = null;// теперь слоты не выбраны
-            }
-          }
-        }
-      }
+            ]
+        });
     }
 
-    // берем каждый слот
-    for (let i = 0; i < countLines; i++) {
+    function renderEnemyHealth() {
+        for (let i = 1; i <= 4; i++) {
+            if (!(enemies[i] instanceof Enemy)) continue;
+            if (!collidesWithScreen({ x: enemies[i].pos.x + globalTranslation.x, y: enemies[i].pos.y + globalTranslation.y }, { x: enemies[i].size.x, y: enemies[i].size.y })) continue;
+            renderMenu({
+                type: 'menu',
+                pos: { x: 0, y: 0 },
+                size: { x: enemies[i].size.x, y: enemies[i].size.y / 10 },
+                border: 'white',
+                background: 'grey',
+                children: [
+                    {
+                        type: 'menu',
+                        pos: { x: 0, y: 0 },
+                        size: { x: enemies[i].size.x * enemies[i].HP / enemies[i].maxHP },
+                        align: 'y',
+                        background: 'red'
+                    }
+                ]
+            }, { pos: { x: enemies[i].pos.x + globalTranslation.x, y: enemies[i].pos.y + globalTranslation.y }, size: { x: enemies[i].size.x, y: enemies[i].size.y } });
+        }
+    }
 
-      // рисуем слоты до окончания строки
-      for (let j = 0; j < countSlotsOnLine; j++) {
+    function renderDragingSlot() {
+        dragingSlot.pos.x = input.mouse.coordinates.x;
+        dragingSlot.pos.y = input.mouse.coordinates.y;
 
-        if (currentBox.countSlots < i * countSlotsOnLine + j + 1)// выводим только нужное количество слотов, не больше
-          return;
+        renderMenu(dragingSlot);
+    }
 
-        if (selectedSlot == i * countSlotsOnLine + j) {// выделяем зеленым цветом выбранный слот
-          ctx.strokeStyle = "#00ff00";
+    function renderActiveItem() {
+        let size = { x: 300, y: 400 };
+        renderMenu({
+            type: 'menu',
+            pos: { x: playerInventory.pos.x - 30 - size.x },
+            size: size,
+            border: 'white',
+            background: 'grey',
+            align: 'y',
+            children: [
+                {
+                    type: 'menu',
+                    pos: { x: 20, y: 20 },
+                    size: { x: 90, y: 90 },
+                    border: 'white',
+                    children: [
+                        {
+                            type: 'image',
+                            indent: 5,
+                            item: activeInvItem
+                        }
+                    ]
+                },
+                {
+                    type: 'text',
+                    text: activeInvItem.name,
+                    font: 20,
+                    pos: { x: 20, y: 115 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: activeInvItem.description,
+                    font: 16,
+                    over: true,
+                    pos: { x: 20, y: 145 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Максимум на слот: ' + activeInvItem.max,
+                    font: 17,
+                    pos: { x: 20, y: 300 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Время восстановления: ' + activeInvItem.timeout / 1000 + ' сек',
+                    font: 17,
+                    pos: { x: 20, y: 330 },
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Прибавляет(отнимает) HP: ' + activeInvItem.HP,
+                    font: 17,
+                    pos: { x: 20, y: 360 },
+                    color: 'white'
+                }
+            ]
+        });
+    }
+
+    function setMinPlayerInventory() {
+        let children = [];
+
+        let indent = indentBetweenItem * scaleAll,
+            sizeBlock = sizeInventoryBlock * scaleAll;
+
+        let size = { x: indent + (indent + sizeBlock) * player.countMinSlots, y: indent * 2 + sizeBlock },
+            pos = { x: (window.innerWidth - size.x) / 2, y: 10 };
+
+        for (let i = 1; i <= player.countMinSlots; i++) {
+            let x = indent + (indent + sizeBlock) * (i - 1),
+                y = indent;
+
+            children.push({
+                type: 'menu',
+                pos: { x: x, y: y },
+                size: { x: sizeBlock, y: sizeBlock },
+                border: 'white',
+                absolutePos: { x: pos.x + x, y: pos.y + y },
+                children: [
+                    {
+                        type: 'image',
+                        indent: indent,
+                        item: player.minSlots[i],
+                        children: [
+                            {
+                                type: 'text',
+                                text: {
+                                    func: 'getCountMinItem',
+                                    params: {
+                                        i: i
+                                    }
+                                },
+                                pos: { x: 2, y: 0 },
+                                font: 13,
+                                color: 'white'
+                            },
+                            {
+                                type: 'text',
+                                text: i,
+                                font: 13,
+                                pos: { x: -9, y: sizeBlock - 5},
+                                color: 'white'
+                            },
+                            {
+                                type: 'menu',
+                                pos: { x: 0, y: 0 },
+                                align: 'c',
+                                background: (usingFood ? 'red' : false),
+                                opacity: 0.4
+                            }
+                        ]
+                    }
+                ]
+            });
+        }
+
+        playerMinInventory = {
+            align: false,
+            type: 'menu',
+            pos: pos,
+            size: size,
+            border: 'white',
+            background: 'grey',
+            children: children
+        };
+    }
+
+    function setPlayerInventory(active = false) {
+        let line = Math.ceil(Math.sqrt(player.countSlots)),
+            countLines = Math.ceil(player.countSlots / line);
+
+        let children = [];
+
+        let indent = indentBetweenItem * scaleAll,
+            sizeBlock = sizeInventoryBlock * scaleAll;
+
+        let size = { x: indent + (indent + sizeBlock) * line, y: indent + (indent + sizeBlock) * countLines },
+            pos = { x: (window.innerWidth - size.x) / 2, y: (window.innerHeight - size.y) / 2 };
+
+        for (let i = 0; i < countLines; i++) {
+            for (let j = 0; j < line; j++) {
+                let x = indent + (indent + sizeBlock) * j,
+                    y = indent + (indent + sizeBlock) * i;
+
+                children.push({
+                    type: 'menu',
+                    pos: { x: x, y: y },
+                    size: { x: sizeBlock, y: sizeBlock },
+                    align: false,
+                    border: 'white',
+                    absolutePos: { x: pos.x + x, y: pos.y + y },
+                    children: [
+                        {
+                            type: 'image',
+                            indent: indent,
+                            item: player.slots[i * countLines + j],
+                            children: [
+                                {
+                                    type: 'text',
+                                    text: {
+                                        func: 'getCountItem',
+                                        params: {
+                                            i: i * countLines + j
+                                        }
+                                    },
+                                    pos: { x: 2, y: 0 },
+                                    font: 13,
+                                    color: 'white'
+                                }
+                            ]
+                        }
+                    ]
+                });
+
+                if (i * countLines + j + 1 == player.countSlots) break;
+            }
+        }
+
+        playerInventory = {
+            active: active,
+            type: 'menu',
+            pos: pos,
+            size: size,
+            border: 'white',
+            background: 'grey',
+            children: children
+        };
+        activeInvItem = null;
+    }
+
+    function renderDeath() {
+        renderMenu({
+            type: 'menu',
+            size: { x: 300, y: 200 },
+            border: 'white',
+            align: 'c',
+            background: 'grey',
+            children: [
+                {
+                    type: 'text',
+                    text: 'Вы проиграли!',
+                    font: 20,
+                    pos: { x: 15, y: 20},
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Перезагрузите страницу, чтобы начать снова!',
+                    font: 18,
+                    over: true,
+                    pos: { x: 15, y: 50},
+                    color: 'white'
+                }
+            ]
+        });
+    }
+
+    function renderWin() {
+        renderMenu({
+            type: 'menu',
+            size: { x: 300, y: 200 },
+            border: 'white',
+            align: 'c',
+            background: 'grey',
+            children: [
+                {
+                    type: 'text',
+                    text: 'Вы выиграли!',
+                    font: 20,
+                    pos: { x: 15, y: 20},
+                    color: 'white'
+                },
+                {
+                    type: 'text',
+                    text: 'Перезагрузите страницу, чтобы начать снова!',
+                    font: 18,
+                    over: true,
+                    pos: { x: 15, y: 50},
+                    color: 'white'
+                }
+            ]
+        });
+    }
+
+    /*
+    * pos - позиция (не указываем если center == true)
+    * size - размеры
+    * align - выравнивание 'c' - по центру, 'x' - по горизонтали, 'y' - по вертикали
+    * border - цвет обводки
+    * background - цвет заднего фона
+    * 
+    * если align == 'c', то указываем pos или size, если 'x' - pos.y и size.y, если 'y' - pos.x и size.x
+    */
+    function renderMenu(params, parent = { pos: null, size: null }) {// в parent хранится позиция и размеры предка
+        let x, y;
+                
+        switch (params.type) {
+            case 'menu':
+                let sx, sy;
+
+                if (params.align) {
+                    switch (params.align) {
+                        case 'c':
+                            if (params.pos) {
+                                x = params.pos.x;
+                                y = params.pos.y;
+
+                                if (parent.size) {
+                                    sx = parent.size.x - params.pos.x * 2;
+                                    sy = parent.size.y - params.pos.y * 2;
+                                } else {
+                                    sx = window.innerWidth - params.pos.x * 2;
+                                    sy = window.innerHeight - params.pos.y * 2;
+                                }
+                            } else {
+                                sx = params.size.x;
+                                sy = params.size.y;
+
+                                if (parent.size) {
+                                    x = (parent.size.x - params.size.x) / 2;
+                                    y = (parent.size.y - params.size.y) / 2;
+                                } else {
+                                    x = (window.innerWidth - params.size.x) / 2;
+                                    y = (window.innerHeight - params.size.y) / 2;
+                                }
+                            }
+                            break;
+                        case 'x':
+                            y = params.pos.y;
+                            sy = params.size.y;
+
+                            if (params.pos.x != null) {
+                                x = params.pos.x;
+
+                                if (parent.size) {
+                                    sx = parent.size.x - x * 2
+                                } else {
+                                    sx = window.innerHeight - x * 2;
+                                }
+                            } else {
+                                sx = params.size.x;
+
+                                if (parent.size) {
+                                    x = (parent.size.x - params.size.x) / 2;
+                                } else {
+                                    x = (window.innerWidth - params.size.x) / 2;
+                                }
+                            }
+                            break;
+                        case 'y':
+                            x = params.pos.x;
+                            sx = params.size.x;
+
+                            if (params.pos.y != null) {
+                                y = params.pos.y;
+
+                                if (parent.size) {
+                                    sy = parent.size.y - y * 2;
+                                } else {
+                                    sy = window.innerWidth - y * 2;
+                                }
+                            } else {
+                                sy = params.size.y;
+
+                                if (parent.size) {
+                                    y = (parent.size.y - params.size.y) / 2;
+                                } else {
+                                    y = (window.innerHeight - params.size.y) / 2;
+                                }
+                            }
+                            break;
+                    }
+                } else {
+                    x = params.pos.x;
+                    y = params.pos.y;
+                    sx = params.size.x;
+                    sy = params.size.y;
+                }
+
+                // относительность позиции
+                if (parent.pos) {
+                    x += parent.pos.x;
+                    y += parent.pos.y;
+                }
+
+                if (params.absolutePos) {
+                    params.absolutePos.x = x;
+                    params.absolutePos.y = y;
+                }
+
+                if (params.opacity) {
+                    ctx.globalAlpha = params.opacity;
+                }
+
+                if (params.border) {
+                    ctx.strokeStyle = params.border;
+                    ctx.strokeRect(x, y, sx, sy);
+                }
+
+                if (params.background) {
+                    ctx.fillStyle = params.background;
+                    ctx.fillRect(x, y, sx, sy);
+                }
+
+                ctx.globalAlpha = 1;
+
+                if (params.children) {
+                    if (params.children.length) {
+                        for (let child of params.children) {
+                            renderMenu(child, { pos: { x: x, y: y }, size: { x: sx, y: sy } });
+                        }
+                    }
+                }
+                break;
+            case 'text':
+                if (params.align) {
+                    switch (params.align) {
+                        case 'y':
+                            x = params.pos.x;
+                            
+                            if (parent.size) {
+                                y = (parent.size.y - params.font) / 2;
+                            } else {
+                                y = (window.innerHeight - params.font) / 2;
+                            }
+                            break;
+                    }
+                } else {
+                    x = params.pos.x;
+                    y = params.pos.y;
+                }
+
+                // относительность позиции
+                if (parent.pos) {
+                    x += parent.pos.x;
+                    y += parent.pos.y;
+                }
+
+                let text = null;
+                if (params.text instanceof Object) {
+                    text = eval(params.text.func + `(${JSON.stringify(params.text.params)})`);
+                } else {
+                    text = params.text;   
+                }
+
+                ctx.font = `${params.font}px sans-serif`;// рисуем текст (количество HP)
+                ctx.fillStyle = params.color;
+
+                if (params.over) {
+                    y += params.font;
+
+                    // символов будет в строке
+                    let countSym = Math.floor(parent.size.x / 10),
+                        countLines = Math.ceil(params.text.length / countSym);
+
+                    for (let i = 0; i < countLines; i++) {
+                        ctx.fillText(text.substr(i * countSym, countSym), x, y + (params.font + 3) * i);
+                    }
+                } else {
+                    ctx.fillText(text, x, y + params.font);
+                }
+                break;
+            case 'image':
+                if (params.item) {
+                    let indent = 5;
+
+                    x = indent + parent.pos.x;
+                    y = indent + parent.pos.y;
+
+                    ctx.drawImage(resources.get(params.item.sprite.url),
+                        params.item.sprite.pos.x, params.item.sprite.pos.y,
+                        params.item.sprite.size.x, params.item.sprite.size.y,
+                        x, y,
+                        parent.size.x - indent * 2, parent.size.y - indent * 2);
+
+                    if (params.children) {
+                        if (params.children.length) {
+                            for (let child of params.children) {
+                                renderMenu(child, parent);
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
+    function setDragItem(drag) {
+        if (drag) {
+            let res = getSlotByPos(input.mouse.coordinates.down, firstSlot);
+
+            if (res && res.item) {
+                dragingSlot = {
+                    type: 'menu',
+                    active: false,
+                    pos: { x: input.mouse.coordinates.x, y: input.mouse.coordinates.y },
+                    size: { x: 20 * scaleAll, y: 20 * scaleAll },
+                    align: false,
+                    children: [
+                        {
+                            type: 'image',
+                            indent: 0,
+                            item: res.item
+                        }
+                    ]
+                };
+            }
         } else {
-          ctx.strokeStyle = "#C0C0C0";
-        }
+            let res = getSlotByPos(input.mouse.coordinates.up, secondSlot);
 
-        ctx.fillStyle = "#434343";
-
-        // рисуем сам слот
-        ctx.strokeRect(posM[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * j,
-                       posM[1] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i,
-                       sizeSlot, sizeSlot);
-
-        ctx.fillRect(posM[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * j,
-                     posM[1] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i,
-                     sizeSlot, sizeSlot);
-
-        if (currentBox.slots[i * countSlotsOnLine + j]) {// Если слот не пустой, то рисуем его содержимое
-          // рисуем item в слоте
-          ctx.drawImage(resources.get(currentBox.slots[i * countSlotsOnLine + j].item.spriteURL),
-                       currentBox.slots[i * countSlotsOnLine + j].item.pos[0],
-                       currentBox.slots[i * countSlotsOnLine + j].item.pos[1],
-                       currentBox.slots[i * countSlotsOnLine + j].item.size[0],
-                       currentBox.slots[i * countSlotsOnLine + j].item.size[1],
-                       posM[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * j + indentInSlot,
-                       posM[1] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i + indentInSlot,
-                       sizeSlot - indentInSlot * 2,
-                       sizeSlot - indentInSlot * 2);
-
-          if (currentBox.slots[i * countSlotsOnLine + j].count != 1) {//не пишем количество если предмет один
-            // рисуем количество item-ов в данном хранилище
-            ctx.font = "10px serif";
-            ctx.fillStyle = "#FFFAFA";
-            ctx.fillText(`${currentBox.slots[i * countSlotsOnLine + j].count}`,
-                         posM[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * j + indentInSlot,
-                         posM[1] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i - indentInSlot + sizeSlot);
-          }
-        }
-      }
-    }
-  }
-
-  function renderInventory(ctx, player, cnv) {
-    let indent = 20;// отступ сверху
-
-    let size = [sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * player.countSlots, sizeBetweenSlots * 2 + sizeSlot];
-    let pos = [(cnv.width - size[0]) / 2, indent];
-
-    if (isPressed('mouseclick') != null && showInventory) {// если пользователь нажал куда-то - берем координаты и ищем а затем выделаем нужный слот
-      // считаем какой элемент выделили и обнуляем pressedKeys
-      let posS = [isPressed('mouseclick')[0] - pos[0] - sizeBetweenSlots,// это позиция относительно первого слота (слева сверху)
-                 isPressed('mouseclick')[1] - pos[1] - sizeBetweenSlots];
-
-      if (posS[0] >= 0 && posS[0] < size[0] &&// если кликнули внутри этой меню
-          posS[1] >= 0 && posS[1] < size[1]) {
-
-        // позиция курсора не по пикселям а по положению на слоте (на каком слоте стоит)
-        let posByPos = [Math.floor(posS[0] / (sizeSlot + sizeBetweenSlots)), 0];
-
-        if ((posS[0] - (posByPos[0] * (sizeSlot + sizeBetweenSlots))) < sizeSlot &&// если кликнули четко на слот
-            posS[1] < sizeSlot) {
-          // наш выделенный слот
-          let tempSelectedSlot = posByPos[0];
-          setNullMouseCoordinates();
-
-          if (tempSelectedSlot < player.countSlots) {
-            if (selectedSlot == null) {// если в хранилище ничего не выбрано, то можем выбирать в инвентаре игрока
-              if (selectedSlotInPlayerInventory != null) {
-                // если выбранный только что - пустой, то перемещаем
-                if (!player.slots[tempSelectedSlot]) {
-                  player.slots[tempSelectedSlot] = player.slots[selectedSlotInPlayerInventory];
-                  player.slots[selectedSlotInPlayerInventory] = undefined;
-                } else {// если нет, то меняем местами
-                  let tempSlot = player.slots[tempSelectedSlot];
-                  player.slots[tempSelectedSlot] = player.slots[selectedSlotInPlayerInventory];
-                  player.slots[selectedSlotInPlayerInventory] = tempSlot;
+            if (res && dragingSlot) {
+                if (res.item) {// если оба слота не null, то действуем (проверяем есть ли конкретный Item и в зависимости от этого  меняем местами или заменяем содержимое)
+                    if (res.item != dragingSlot.children[0].item) {
+                        // меняем местами
+                        if (res.item.id == dragingSlot.children[0].item.id) {
+                            if (secondSlot.inventory[secondSlot.id].max >= secondSlot.inventory[secondSlot.id].count + firstSlot.inventory[firstSlot.id].count) {
+                                secondSlot.inventory[secondSlot.id].count += firstSlot.inventory[firstSlot.id].count;
+                                firstSlot.inventory[firstSlot.id] = null;
+                            } else {
+                                let count = secondSlot.inventory[secondSlot.id].count + firstSlot.inventory[firstSlot.id].count - secondSlot.inventory[secondSlot.id].max;
+                                secondSlot.inventory[secondSlot.id].count = secondSlot.inventory[secondSlot.id].max;
+                                firstSlot.inventory[firstSlot.id].count = count;
+                            }
+                        } else {
+                            let slot_tmp = firstSlot.inventory[firstSlot.id];
+                            firstSlot.inventory[firstSlot.id] = secondSlot.inventory[secondSlot.id];
+                            secondSlot.inventory[secondSlot.id] = slot_tmp;
+                        }
+                    }
+                } else {
+                    // перемещаем
+                    secondSlot.inventory[secondSlot.id] = firstSlot.inventory[firstSlot.id];
+                    firstSlot.inventory[firstSlot.id] = null;
                 }
-                selectedSlotInPlayerInventory = null;
-              } else if (player.slots[tempSelectedSlot]) {// если в выбранном только что слоте не пусто, то можем выбрать его
-                // если только что выделенный элемент совпадает с уже выделенным то снимаем выделение
-                selectedSlotInPlayerInventory = tempSelectedSlot == selectedSlotInPlayerInventory ? null : tempSelectedSlot;
-              }
-            } else {// иначе - в хранилище выбран слот
-              // если в выбранном только что слоте не пусто - меняем местами содержимое
-              if (player.slots[tempSelectedSlot]) {
-                // простой обмен с помощью одной переменной
-                let tempSlot = player.slots[tempSelectedSlot];
-                player.slots[tempSelectedSlot] = currentBox.slots[selectedSlot];
-                currentBox.slots[selectedSlot] = tempSlot;
-              } else {// иначе перемещаем содержимое из слота в хранилище в только что выбранный слот
-                player.slots[tempSelectedSlot] = currentBox.slots[selectedSlot];
-                currentBox.slots[selectedSlot] = undefined;
-              }
-              selectedSlot = null;// теперь слоты не выбраны
+            
+                setPlayerInventory(hood.invIsActive());
+                setMinPlayerInventory();
             }
-          }
+
+            dragingSlot = null;
+            firstSlot = {
+                id: null,
+                inventory: null
+            };
+            secondSlot = {
+                id: null,
+                inventory: null
+            };
         }
-      }
     }
 
-    ctx.strokeStyle = "#C0C0C0";// рисуем форму
-    ctx.fillStyle = "#434343";
-    ctx.strokeRect(pos[0], pos[1], size[0], size[1]);
-    ctx.fillRect(pos[0], pos[1], size[0], size[1]);
-
-    // берем слоты игрока и отрисовываем
-    for (let i = 0; i < player.countSlots; i++) {
-
-      if (selectedSlotInPlayerInventory == i && showInventory) {// выделяемый выбранный элемент
-        ctx.strokeStyle = "#00ff00";
-      } else {
-        ctx.strokeStyle = "#C0C0C0";
-      }
-
-      ctx.fillStyle = "#434343";
-
-      // рисуем сам слот
-      ctx.strokeRect(pos[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i,
-                     pos[1] + sizeBetweenSlots,
-                     sizeSlot, sizeSlot);
-
-      ctx.fillRect(pos[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i,
-                   pos[1] + sizeBetweenSlots,
-                   sizeSlot, sizeSlot);
-
-      if (player.slots[i]) {// есть слот не пуст
-        // рисуем item в слоте
-        ctx.drawImage(resources.get(player.slots[i].item.spriteURL),
-                     player.slots[i].item.pos[0],
-                     player.slots[i].item.pos[1],
-                     player.slots[i].item.size[0],
-                     player.slots[i].item.size[1],
-                     pos[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i + indentInSlot,
-                     pos[1] + sizeBetweenSlots + indentInSlot,
-                     sizeSlot - indentInSlot * 2,
-                     sizeSlot - indentInSlot * 2);
-
-        if (player.slots[i].count != 1) {//не пишем количество если предмет один
-           // рисуем количество item-ов в данном хранилище
-           ctx.font = "10px serif";
-           ctx.fillStyle = "#FFFAFA";
-           ctx.fillText(`${player.slots[i].count}`,
-                        pos[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i + indentInSlot,
-                        pos[1] + sizeSlot + sizeBetweenSlots - indentInSlot);
+    function getSlotByPos(pos, target) {
+        if (playerInventory.active) {
+            for (let slot_tmp of playerInventory.children) {
+                if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, pos)) {
+                    target.inventory = player.slots;
+                    target.id = slot_tmp.children[0].children[0].text.params.i;
+                    return slot_tmp.children[0];
+                }
+            }
         }
-        // рисуем клавишу нажав на которую можно использовать этот item
-        ctx.font = "10px serif";
-        ctx.fillStyle = "#FFFAFA";
-        ctx.fillText(`${i + 1}`,
-                     pos[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i + indentInSlot,
-                     pos[1] + sizeBetweenSlots - indentInSlot);
 
-        // если оставшееся время восстановления не равно 0
-        if (player.slots[i].item.remainingTimeReduction) {
-          // рисуем оставшееся время восстановления
-          let maxWidth = 15;// максимальная ширина текста (добавил, чтобы хоть примерно на середине был текст)
-          ctx.font = "15px serif";
-          ctx.fillStyle = "#FFFAFA";
-          ctx.fillText(`${Math.floor(player.slots[i].item.remainingTimeReduction / 100) / 10}`,
-                       pos[0] + sizeBetweenSlots + (sizeBetweenSlots + sizeSlot) * i + indentInSlot + sizeSlot / 2 - maxWidth / 2,
-                       pos[1] + sizeBetweenSlots - indentInSlot + sizeSlot / 2, maxWidth);
+        for (let slot_tmp of playerMinInventory.children) {
+            if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, pos)) {
+                target.inventory = player.minSlots;
+                target.id = slot_tmp.children[0].children[0].text.params.i;
+                return slot_tmp.children[0];
+            }
         }
-      }
+
+        return null;
     }
-  }
 
-  function renderEnemyHealth(ctx, player, enemy) {
-    enemy.forEach((e) => {
-      let indentTop = 5,
-          indentOnSides = 1;
+    function setItemByPos() {
+        for (let slot_tmp of playerInventory.children) {
+            if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, { x: input.mouse.coordinates.x, y: input.mouse.coordinates.y })) {
+                activeInvItem = slot_tmp.children[0].item;
+                return;
+            }
+        }
+        activeInvItem = null;
+    }
 
-      let sx = e.size[0] + indentOnSides * 2,
-          sy = 7;
+    function getCountItem(params) {
+        return player.slots[params.i].count != 1 ? player.slots[params.i].count : '';
+    }
 
-      let x = e.pos[0] - indentOnSides + player.globalTranslation[0],
-          y = e.pos[1] + indentTop + sy + player.globalTranslation[1];
+    function getCountMinItem(params) {
+        return player.minSlots[params.i].count != 1 ? player.minSlots[params.i].count : '';
+    }
 
-      ctx.fillStyle = "#ff0800";// рисуем шкалу HP
-      ctx.strokeStyle = "#C0C0C0";
-      ctx.strokeRect(x, y, sx, sy);
-      ctx.fillRect(x, y, sx / e.maxHP * e.HP, sy);
-    });
-  }
+    function setActiveItem() {
+        if (playerInventory.active) {
+            setItemByPos();
+        } else {
+            activeInvItem = null;
+        }
+    }
 
-  window.hood = {
-    render: render,
-    showOrNotInventory: showOrNotInventory,
-    setBox: setBox,
-    getShowInventory: getShowInventory,
-    setShowHintInventory: setShowHintInventory
-  }
+    function removeItem() {
+        removeItemByPos();
+    }
+
+    function removeItemByPos() {
+        if (playerInventory.active) {
+            for (let slot_tmp of playerInventory.children) {
+                if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, input.mouse.coordinates.up)) {
+                    player.slots[slot_tmp.children[0].children[0].text.params.i] = null;
+                    setPlayerInventory(true);
+                }
+            }
+        }
+
+        for (let slot_tmp of playerMinInventory.children) {
+            if (collidesWithDot(slot_tmp.absolutePos, slot_tmp.size, input.mouse.coordinates.up)) {
+                player.minSlots[slot_tmp.children[0].children[0].text.params.i] = null;
+                setMinPlayerInventory();
+            }
+        }
+    }
+
+    window.hood = {
+        render: render,
+        showPlayerInventory: () => playerInventory.active = !playerInventory.active,
+        showPlayerInventoryParam: (show) => playerInventory.active = show,
+        setDragItem: setDragItem,
+        setMinPlayerInventory: setMinPlayerInventory,
+        setPlayerInventory: setPlayerInventory,
+        setActiveItem: setActiveItem,
+        renderDeath: renderDeath,
+        invIsActive: () => { return playerInventory.active },
+        removeItem: removeItem,
+        renderWin: renderWin
+    }
 })();
