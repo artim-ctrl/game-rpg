@@ -1,24 +1,28 @@
 <!DOCTYPE html>
-<html lang="ru">
-  <head>
-    <meta charset="utf-8">
-    <title>hello, rpg</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/styles.css">
-  </head>
-  <body>
+    <title>Игра</title>
+</head>
+<body>
+    <div class='header'>
+        Как играть
+    </div>
+    
+    <div>
+        Нажмите 'i', чтобы открыть инвентарь. Перетащите оружие в быстрый инвентарь с помощью мыши.
+        Нажмите соответствующую клавишу для использования предмета, находящегося в быстром инвентаре.
+        Жмите ЛКМ, чтобы ударить оружием. После смерти врага, из него выпадут его предметы.
+        Подойдите к предмету и нажмите 'f', чтобы поднять его.
+        Нажмите ПКМ в основном инвентаре, чтобы удалить предмет.
+        После смерти врага на его точке спауна через время появится враг следующего уровня (если таковой имеется).
+        Игра закончится если у игрока закончится шкала HP (ее можно пополнить используя еду) или при убийстве врагов всех уровней.
+    </div>
 
-    <canvas id="canvas"></canvas>
-
-    <script src="script/resources.js"></script>
-    <script src="script/game.js"></script>
-    <script src="script/input.js"></script>
-    <script src="script/map.js"></script>
-    <script src="script/functions.js"></script>
-    <script src="script/gameobject.js"></script>
-    <script src="script/player.js"></script>
-    <script src="script/item.js"></script>
-    <script src="script/hood.js"></script>
-    <script src="script/enemy.js"></script>
-    <script src="script/init.js"></script>
-  </body>
+    <div>
+        <a href="game.html">Играть</a>
+    </div>
+</body>
 </html>
