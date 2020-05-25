@@ -157,7 +157,7 @@ let player = null;// переменная игрока
                 name: 'Свинина',
                 id: 'meet_pig',
                 max: 10,
-                description: 'Свинка пепа',
+                description: 'Мясо свиньи',
                 timeout: 800,
                 HP: 3,
                 sprite: {
