@@ -1,4 +1,4 @@
-# A first try to code anything
+# First attempt at coding with JavasScript
 
 # game-rpg
 
