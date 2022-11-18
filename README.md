@@ -1,4 +1,4 @@
-# First attempt at coding with JavasScript
+# First attempt at coding with JavaScript
 
 # game-rpg
 
