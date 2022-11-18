@@ -1,14 +1,17 @@
+# A first try to code anything
+
 # game-rpg
+
 <div class='header'>
-        Как играть
+    How to play
 </div>
 
 <div>
-    Нажмите 'i', чтобы открыть инвентарь. Перетащите оружие в быстрый инвентарь с помощью мыши.
-    Нажмите соответствующую клавишу для использования предмета, находящегося в быстром инвентаре.
-    Жмите ЛКМ, чтобы ударить оружием. После смерти врага, из него выпадут его предметы.
-    Подойдите к предмету и нажмите 'f', чтобы поднять его.
-    Нажмите ПКМ в основном инвентаре, чтобы удалить предмет.
-    После смерти врага на его точке спауна через время появится враг следующего уровня (если таковой имеется).
-    Игра закончится если у игрока закончится шкала HP (ее можно пополнить используя еду) или при убийстве врагов всех уровней.
+    Press 'i' to open inventory. Drag the weapon to the quick inventory with the mouse.
+    Press the appropriate key to use the item in the quick inventory.
+    Click LMB to hit with a weapon. After the death of the enemy, his items will fall out of him.
+    Approach an item and press 'f' to pick it up.
+    Right click in the main inventory to remove the item.
+    After the death of an enemy, an enemy of the next level (if any) will appear at its spawn point after a while.
+    The game will end if the player runs out of HP (it can be replenished using food) or when killing enemies of all levels.
 </div>
